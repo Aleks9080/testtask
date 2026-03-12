@@ -1,0 +1,838 @@
+/* ============================================
+   TestTask Schedule — Расписание врача
+   Современный дизайн с CSS-переменными
+   ============================================ */
+
+:root {
+    --tt-primary: #4f6ef7;
+    --tt-primary-hover: #3b5de7;
+    --tt-primary-light: #eef1ff;
+    --tt-success: #22c55e;
+    --tt-success-light: #f0fdf4;
+    --tt-danger: #ef4444;
+    --tt-danger-light: #fef2f2;
+    --tt-warning: #f59e0b;
+    --tt-warning-light: #fffbeb;
+    --tt-gray-50: #f9fafb;
+    --tt-gray-100: #f3f4f6;
+    --tt-gray-200: #e5e7eb;
+    --tt-gray-300: #d1d5db;
+    --tt-gray-400: #9ca3af;
+    --tt-gray-500: #6b7280;
+    --tt-gray-600: #4b5563;
+    --tt-gray-700: #374151;
+    --tt-gray-800: #1f2937;
+    --tt-gray-900: #111827;
+    --tt-radius: 12px;
+    --tt-radius-sm: 8px;
+    --tt-radius-xs: 6px;
+    --tt-shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+    --tt-shadow-md: 0 4px 6px -1px rgba(0,0,0,.07), 0 2px 4px -2px rgba(0,0,0,.05);
+    --tt-shadow-lg: 0 10px 15px -3px rgba(0,0,0,.08), 0 4px 6px -4px rgba(0,0,0,.04);
+    --tt-transition: .2s cubic-bezier(.4, 0, .2, 1);
+    --tt-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* --- Обёртка --- */
+.tt-schedule-wrapper {
+    font-family: var(--tt-font);
+    max-width: 1100px;
+    margin: 20px auto;
+    padding: 0 16px;
+    color: var(--tt-gray-800);
+}
+
+/* --- Шапка --- */
+.tt-schedule-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 28px;
+    padding: 24px 28px;
+    background: linear-gradient(135deg, var(--tt-primary) 0%, #7c5ef7 100%);
+    border-radius: var(--tt-radius);
+    color: #fff;
+    box-shadow: var(--tt-shadow-lg);
+}
+
+.tt-schedule-header__icon {
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,.18);
+    border-radius: var(--tt-radius-sm);
+    flex-shrink: 0;
+}
+
+.tt-schedule-header__icon svg {
+    width: 28px;
+    height: 28px;
+}
+
+.tt-schedule-header__text h1 {
+    margin: 0 0 4px;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -.02em;
+}
+
+.tt-schedule-header__text p {
+    margin: 0;
+    font-size: 14px;
+    opacity: .85;
+}
+
+/* --- Выбор врача --- */
+.tt-schedule-doctor-select {
+    margin-bottom: 24px;
+    padding: 20px 24px;
+    background: #fff;
+    border-radius: var(--tt-radius);
+    box-shadow: var(--tt-shadow);
+    border: 1px solid var(--tt-gray-200);
+}
+
+.tt-schedule-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--tt-gray-600);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    margin-bottom: 10px;
+}
+
+.tt-schedule-label svg {
+    color: var(--tt-primary);
+}
+
+.tt-schedule-select {
+    width: 100%;
+    max-width: 420px;
+    padding: 10px 14px;
+    font-size: 15px;
+    font-family: var(--tt-font);
+    border: 2px solid var(--tt-gray-200);
+    border-radius: var(--tt-radius-sm);
+    background: var(--tt-gray-50);
+    color: var(--tt-gray-800);
+    transition: border-color var(--tt-transition), box-shadow var(--tt-transition);
+    cursor: pointer;
+    outline: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 40px;
+}
+
+.tt-schedule-select:focus {
+    border-color: var(--tt-primary);
+    box-shadow: 0 0 0 3px rgba(79, 110, 247, .15);
+}
+
+/* --- Быстрые шаблоны --- */
+.tt-schedule-presets {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+    padding: 16px 20px;
+    background: var(--tt-gray-50);
+    border-radius: var(--tt-radius);
+    border: 1px solid var(--tt-gray-200);
+}
+
+.tt-schedule-presets__label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--tt-gray-500);
+    margin-right: 4px;
+}
+
+.tt-schedule-preset-btn {
+    padding: 7px 14px;
+    font-size: 13px;
+    font-family: var(--tt-font);
+    font-weight: 500;
+    color: var(--tt-gray-700);
+    background: #fff;
+    border: 1px solid var(--tt-gray-200);
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all var(--tt-transition);
+    white-space: nowrap;
+}
+
+.tt-schedule-preset-btn:hover {
+    background: var(--tt-primary-light);
+    border-color: var(--tt-primary);
+    color: var(--tt-primary);
+    transform: translateY(-1px);
+    box-shadow: var(--tt-shadow);
+}
+
+/* --- Сетка дней --- */
+.tt-schedule-days {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+/* --- Карточка дня --- */
+.tt-schedule-day {
+    background: #fff;
+    border-radius: var(--tt-radius);
+    border: 2px solid var(--tt-gray-200);
+    overflow: hidden;
+    transition: all var(--tt-transition);
+    box-shadow: var(--tt-shadow);
+}
+
+.tt-schedule-day:hover {
+    box-shadow: var(--tt-shadow-md);
+    border-color: var(--tt-gray-300);
+}
+
+.tt-schedule-day--off {
+    opacity: .75;
+    border-color: var(--tt-gray-200);
+    background: var(--tt-gray-50);
+}
+
+.tt-schedule-day--off:hover {
+    opacity: 1;
+}
+
+.tt-schedule-day--weekend .tt-schedule-day__header {
+    background: var(--tt-warning-light);
+}
+
+.tt-schedule-day--weekend .tt-schedule-day__short {
+    color: var(--tt-warning);
+}
+
+/* --- Заголовок дня --- */
+.tt-schedule-day__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    background: var(--tt-primary-light);
+    border-bottom: 1px solid var(--tt-gray-200);
+}
+
+.tt-schedule-day__name {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.tt-schedule-day__short {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--tt-primary);
+    line-height: 1;
+}
+
+.tt-schedule-day__full {
+    font-size: 13px;
+    color: var(--tt-gray-500);
+    font-weight: 500;
+}
+
+/* --- Toggle-переключатель --- */
+.tt-schedule-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.tt-schedule-toggle input {
+    display: none;
+}
+
+.tt-schedule-toggle__slider {
+    width: 40px;
+    height: 22px;
+    background: var(--tt-gray-300);
+    border-radius: 11px;
+    position: relative;
+    transition: background var(--tt-transition);
+    flex-shrink: 0;
+}
+
+.tt-schedule-toggle__slider::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 16px;
+    height: 16px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform var(--tt-transition);
+    box-shadow: 0 1px 3px rgba(0,0,0,.15);
+}
+
+.tt-schedule-toggle input:checked + .tt-schedule-toggle__slider {
+    background: var(--tt-success);
+}
+
+.tt-schedule-toggle input:checked + .tt-schedule-toggle__slider::after {
+    transform: translateX(18px);
+}
+
+.tt-schedule-toggle__label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--tt-gray-500);
+    min-width: 60px;
+}
+
+.tt-schedule-toggle input:checked ~ .tt-schedule-toggle__label {
+    color: var(--tt-success);
+}
+
+/* --- Тело карточки --- */
+.tt-schedule-day__body {
+    padding: 16px;
+}
+
+.tt-schedule-time-group {
+    margin-bottom: 12px;
+}
+
+.tt-schedule-time-group:last-of-type {
+    margin-bottom: 8px;
+}
+
+.tt-schedule-time-group__label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--tt-gray-500);
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    margin-bottom: 8px;
+}
+
+.tt-schedule-time-group__label svg {
+    color: var(--tt-primary);
+}
+
+.tt-schedule-time-group--break .tt-schedule-time-group__label svg {
+    color: var(--tt-warning);
+}
+
+.tt-schedule-time-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.tt-schedule-time-field {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.tt-schedule-time-field label {
+    font-size: 12px;
+    color: var(--tt-gray-400);
+    font-weight: 500;
+    flex-shrink: 0;
+}
+
+.tt-schedule-time-input {
+    width: 100%;
+    padding: 8px 10px;
+    font-size: 14px;
+    font-family: var(--tt-font);
+    font-weight: 600;
+    border: 2px solid var(--tt-gray-200);
+    border-radius: var(--tt-radius-xs);
+    background: var(--tt-gray-50);
+    color: var(--tt-gray-800);
+    text-align: center;
+    transition: all var(--tt-transition);
+    outline: none;
+}
+
+.tt-schedule-time-input:focus {
+    border-color: var(--tt-primary);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(79, 110, 247, .1);
+}
+
+.tt-schedule-time-input--break {
+    border-color: var(--tt-gray-200);
+}
+
+.tt-schedule-time-input--break:focus {
+    border-color: var(--tt-warning);
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, .1);
+}
+
+.tt-schedule-time-separator {
+    font-size: 16px;
+    color: var(--tt-gray-400);
+    font-weight: 500;
+    flex-shrink: 0;
+}
+
+/* --- Итого часов --- */
+.tt-schedule-day__hours {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--tt-gray-200);
+    margin-top: 4px;
+}
+
+.tt-schedule-day__hours-value {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--tt-primary);
+    line-height: 1;
+}
+
+.tt-schedule-day__hours-label {
+    font-size: 12px;
+    color: var(--tt-gray-400);
+    font-weight: 500;
+}
+
+/* --- Выходной — сообщение --- */
+.tt-schedule-day__off-message {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 16px;
+    text-align: center;
+    color: var(--tt-gray-400);
+    gap: 8px;
+}
+
+.tt-schedule-day__off-message svg {
+    opacity: .35;
+}
+
+.tt-schedule-day__off-message span {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+/* --- Итого за неделю --- */
+.tt-schedule-summary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 32px;
+    padding: 20px 24px;
+    background: #fff;
+    border-radius: var(--tt-radius);
+    border: 2px solid var(--tt-gray-200);
+    box-shadow: var(--tt-shadow);
+    margin-bottom: 20px;
+}
+
+.tt-schedule-summary__item {
+    text-align: center;
+}
+
+.tt-schedule-summary__number {
+    display: block;
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--tt-primary);
+    line-height: 1.1;
+}
+
+.tt-schedule-summary__label {
+    font-size: 13px;
+    color: var(--tt-gray-500);
+    font-weight: 500;
+}
+
+.tt-schedule-summary__divider {
+    width: 1px;
+    height: 40px;
+    background: var(--tt-gray-200);
+}
+
+/* --- Кнопка сохранения --- */
+.tt-schedule-actions {
+    text-align: center;
+    padding-bottom: 8px;
+}
+
+.tt-schedule-save-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 36px;
+    font-size: 15px;
+    font-family: var(--tt-font);
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(135deg, var(--tt-primary) 0%, #7c5ef7 100%);
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all var(--tt-transition);
+    box-shadow: 0 4px 14px rgba(79, 110, 247, .35);
+    letter-spacing: .01em;
+}
+
+.tt-schedule-save-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(79, 110, 247, .45);
+}
+
+.tt-schedule-save-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(79, 110, 247, .35);
+}
+
+.tt-schedule-save-btn--loading {
+    pointer-events: none;
+    opacity: .7;
+}
+
+/* --- Пустое состояние --- */
+.tt-schedule-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 24px;
+    background: #fff;
+    border-radius: var(--tt-radius);
+    border: 2px dashed var(--tt-gray-200);
+    text-align: center;
+    color: var(--tt-gray-400);
+}
+
+.tt-schedule-empty svg {
+    margin-bottom: 16px;
+    opacity: .4;
+}
+
+.tt-schedule-empty p {
+    font-size: 15px;
+    font-weight: 500;
+    margin: 0;
+}
+
+/* --- Toast-уведомление --- */
+.tt-schedule-toast {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    padding: 14px 24px;
+    border-radius: var(--tt-radius-sm);
+    font-size: 14px;
+    font-weight: 600;
+    font-family: var(--tt-font);
+    color: #fff;
+    box-shadow: var(--tt-shadow-lg);
+    z-index: 10000;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all .3s cubic-bezier(.4, 0, .2, 1);
+    pointer-events: none;
+    max-width: 400px;
+}
+
+.tt-schedule-toast--visible {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.tt-schedule-toast--success {
+    background: var(--tt-success);
+}
+
+.tt-schedule-toast--error {
+    background: var(--tt-danger);
+}
+
+/* --- Анимации --- */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.tt-schedule-day {
+    animation: fadeInUp .35s cubic-bezier(.4, 0, .2, 1) both;
+}
+
+.tt-schedule-day:nth-child(1) { animation-delay: .03s; }
+.tt-schedule-day:nth-child(2) { animation-delay: .06s; }
+.tt-schedule-day:nth-child(3) { animation-delay: .09s; }
+.tt-schedule-day:nth-child(4) { animation-delay: .12s; }
+.tt-schedule-day:nth-child(5) { animation-delay: .15s; }
+.tt-schedule-day:nth-child(6) { animation-delay: .18s; }
+.tt-schedule-day:nth-child(7) { animation-delay: .21s; }
+
+/* --- Карточка выбора (шаги) --- */
+.tt-schedule-selector-card {
+    margin-bottom: 24px;
+    padding: 24px;
+    background: #fff;
+    border-radius: var(--tt-radius);
+    box-shadow: var(--tt-shadow);
+    border: 1px solid var(--tt-gray-200);
+}
+
+.tt-schedule-selector-step {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    padding-bottom: 20px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--tt-gray-100);
+}
+
+.tt-schedule-selector-step:last-child {
+    padding-bottom: 0;
+    margin-bottom: 0;
+    border-bottom: none;
+}
+
+.tt-schedule-step-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, var(--tt-primary) 0%, #7c5ef7 100%);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 800;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.tt-schedule-selector-content {
+    flex: 1;
+    min-width: 0;
+}
+
+/* --- Сетка карточек врачей --- */
+.tt-schedule-doctor-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.tt-schedule-doctor-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--tt-gray-50);
+    border: 2px solid var(--tt-gray-200);
+    border-radius: var(--tt-radius-sm);
+    text-decoration: none;
+    color: var(--tt-gray-800);
+    transition: all var(--tt-transition);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.tt-schedule-doctor-card:hover {
+    border-color: var(--tt-primary);
+    background: var(--tt-primary-light);
+    transform: translateY(-2px);
+    box-shadow: var(--tt-shadow-md);
+    color: var(--tt-gray-800);
+    text-decoration: none;
+}
+
+.tt-schedule-doctor-card--active {
+    border-color: var(--tt-primary);
+    background: var(--tt-primary-light);
+    box-shadow: 0 0 0 3px rgba(79, 110, 247, .15);
+}
+
+.tt-schedule-doctor-card__avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--tt-gray-200);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    overflow: hidden;
+    color: var(--tt-gray-400);
+}
+
+.tt-schedule-doctor-card__avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.tt-schedule-doctor-card__name {
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.3;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tt-schedule-doctor-card__badge {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    padding: 2px 6px;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    background: var(--tt-primary);
+    color: #fff;
+    border-radius: 10px;
+}
+
+/* --- Текущий выбранный врач --- */
+.tt-schedule-current-doctor {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    padding: 16px 20px;
+    background: var(--tt-success-light);
+    border: 2px solid var(--tt-success);
+    border-radius: var(--tt-radius);
+}
+
+.tt-schedule-current-doctor__info {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.tt-schedule-current-doctor__avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    overflow: hidden;
+    border: 2px solid var(--tt-success);
+    color: var(--tt-success);
+}
+
+.tt-schedule-current-doctor__avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.tt-schedule-current-doctor__name {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--tt-gray-900);
+}
+
+.tt-schedule-current-doctor__id {
+    font-size: 12px;
+    color: var(--tt-gray-500);
+    margin-top: 2px;
+}
+
+/* --- Нет элементов --- */
+.tt-schedule-no-items {
+    padding: 16px 20px;
+    background: var(--tt-warning-light);
+    border: 1px solid var(--tt-warning);
+    border-radius: var(--tt-radius-sm);
+    color: var(--tt-gray-700);
+    font-size: 14px;
+    font-weight: 500;
+    margin-top: 8px;
+}
+
+/* --- Responsive --- */
+@media (max-width: 900px) {
+    .tt-schedule-days {
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    }
+
+    .tt-schedule-doctor-grid {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    }
+}
+
+@media (max-width: 600px) {
+    .tt-schedule-wrapper {
+        padding: 0 8px;
+    }
+
+    .tt-schedule-header {
+        padding: 16px 20px;
+    }
+
+    .tt-schedule-header__text h1 {
+        font-size: 18px;
+    }
+
+    .tt-schedule-days {
+        grid-template-columns: 1fr;
+    }
+
+    .tt-schedule-doctor-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .tt-schedule-presets {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .tt-schedule-summary {
+        gap: 20px;
+    }
+
+    .tt-schedule-summary__number {
+        font-size: 26px;
+    }
+
+    .tt-schedule-selector-step {
+        flex-direction: column;
+        gap: 10px;
+    }
+}

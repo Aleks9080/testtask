@@ -1,0 +1,26 @@
+<?php
+
+$MESS['TESTTASK_SCHEDULE_PAGE_TITLE'] = 'Расписание врача';
+$MESS['TESTTASK_SCHEDULE_TAB_NAME'] = 'Расписание';
+$MESS['TESTTASK_SCHEDULE_TAB_TITLE'] = 'Настройка рабочей недели врача';
+$MESS['TESTTASK_SCHEDULE_DOCTOR_LABEL'] = 'Выберите врача';
+$MESS['TESTTASK_SCHEDULE_SAVE_SUCCESS'] = 'Расписание успешно сохранено';
+$MESS['TESTTASK_SCHEDULE_SAVE_ERROR'] = 'Ошибка при сохранении расписания';
+$MESS['TESTTASK_SCHEDULE_ACCESS_DENIED'] = 'Доступ запрещён';
+$MESS['TESTTASK_SCHEDULE_MODULE_NOT_INSTALLED'] = 'Модуль testtask.schedule не установлен';
+
+$MESS['TESTTASK_SCHEDULE_DAY_1'] = 'Понедельник';
+$MESS['TESTTASK_SCHEDULE_DAY_2'] = 'Вторник';
+$MESS['TESTTASK_SCHEDULE_DAY_3'] = 'Среда';
+$MESS['TESTTASK_SCHEDULE_DAY_4'] = 'Четверг';
+$MESS['TESTTASK_SCHEDULE_DAY_5'] = 'Пятница';
+$MESS['TESTTASK_SCHEDULE_DAY_6'] = 'Суббота';
+$MESS['TESTTASK_SCHEDULE_DAY_7'] = 'Воскресенье';
+
+$MESS['TESTTASK_SCHEDULE_DAY_SHORT_1'] = 'Пн';
+$MESS['TESTTASK_SCHEDULE_DAY_SHORT_2'] = 'Вт';
+$MESS['TESTTASK_SCHEDULE_DAY_SHORT_3'] = 'Ср';
+$MESS['TESTTASK_SCHEDULE_DAY_SHORT_4'] = 'Чт';
+$MESS['TESTTASK_SCHEDULE_DAY_SHORT_5'] = 'Пт';
+$MESS['TESTTASK_SCHEDULE_DAY_SHORT_6'] = 'Сб';
+$MESS['TESTTASK_SCHEDULE_DAY_SHORT_7'] = 'Вс';
