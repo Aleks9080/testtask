@@ -2,6 +2,7 @@
 
 if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) die();
 
+
 /**
  * Шаблон детальной страницы врача с расписанием
  *
@@ -12,55 +13,130 @@ if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) die();
 
 $element = $arResult['ELEMENT'];
 $schedule = $arResult['SCHEDULE'];
+$weekDays = $arResult['WEEK_DAYS'] ?? [];
+$weekStart = $arResult['WEEK_START'] ?? date('Y-m-d');
+$weekOffset = $arResult['WEEK_OFFSET'] ?? 0;
+$specializations = $arResult['SPECIALIZATIONS'] ?? [];
 $days = $arResult['DAYS_OF_WEEK'];
 $defaults = $arResult['DEFAULT_SCHEDULE'];
 $sefFolder = $arResult['SEF_FOLDER'];
+
+// Формируем даты недели для отображения
+$weekStartDate = new DateTime($weekStart);
+$weekEndDate = clone $weekStartDate;
+$weekEndDate->modify('+6 days');
+$weekRange = $weekStartDate->format('d.m') . ' — ' . $weekEndDate->format('d.m.Y');
 ?>
 
-<div class="tt-schedule-detail">
-    <!-- Информация о враче -->
-    <div class="tt-schedule-detail__header">
-        <?php if ($element['PREVIEW_PICTURE'] || $element['DETAIL_PICTURE']): ?>
-            <div class="tt-schedule-detail__photo">
-                <img src="<?= htmlspecialcharsbx($element['DETAIL_PICTURE'] ?: $element['PREVIEW_PICTURE']) ?>" 
-                     alt="<?= htmlspecialcharsbx($element['NAME']) ?>">
+<div class="tt-schedule-detail" data-doctor-id="<?= $element['ID'] ?>">
+    <!-- Основной контент: врач слева, расписание справа -->
+    <div class="tt-schedule-detail__main">
+        <!-- Врач слева -->
+        <div class="tt-schedule-detail__doctor">
+            <div class="tt-schedule-detail__photo-section">
+                <?php if ($element['PREVIEW_PICTURE'] || $element['DETAIL_PICTURE']): ?>
+                    <div class="tt-schedule-detail__photo">
+                        <img src="<?= htmlspecialcharsbx($element['DETAIL_PICTURE'] ?: $element['PREVIEW_PICTURE']) ?>" 
+                             alt="<?= htmlspecialcharsbx($element['NAME']) ?>">
+                    </div>
+                <?php else: ?>
+                    <div class="tt-schedule-detail__photo">
+                        <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                            <circle cx="12" cy="7" r="4"/>
+                        </svg>
+                    </div>
+                <?php endif; ?>
+                <h1 class="tt-schedule-detail__name"><?= htmlspecialcharsbx($element['NAME']) ?></h1>
+                <?php if ($element['PREVIEW_TEXT']): ?>
+                    <div class="tt-schedule-detail__preview">
+                        <?= $element['PREVIEW_TEXT'] ?>
+                    </div>
+                <?php endif; ?>
             </div>
-        <?php endif; ?>
-        <div class="tt-schedule-detail__info">
-            <h1 class="tt-schedule-detail__name"><?= htmlspecialcharsbx($element['NAME']) ?></h1>
-            <?php if ($element['PREVIEW_TEXT']): ?>
-                <div class="tt-schedule-detail__preview">
-                    <?= $element['PREVIEW_TEXT'] ?>
+
+            <!-- Специальности -->
+            <?php if (!empty($specializations)): ?>
+            <div class="tt-schedule-detail__specializations">
+                <h2 class="tt-schedule-detail__specializations-title">Специальности</h2>
+                <div class="tt-schedule-detail__specializations-list">
+                    <?php foreach ($specializations as $spec): ?>
+                        <div class="tt-schedule-detail__specialization-item">
+                            <?php if ($spec['PICTURE']): ?>
+                                <img src="<?= htmlspecialcharsbx($spec['PICTURE']) ?>" alt="<?= htmlspecialcharsbx($spec['NAME']) ?>" class="tt-schedule-detail__specialization-icon">
+                            <?php else: ?>
+                                <div class="tt-schedule-detail__specialization-icon">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                                    </svg>
+                                </div>
+                            <?php endif; ?>
+                            <span class="tt-schedule-detail__specialization-name"><?= htmlspecialcharsbx($spec['NAME']) ?></span>
+                        </div>
+                    <?php endforeach; ?>
                 </div>
+            </div>
             <?php endif; ?>
         </div>
-    </div>
 
-    <!-- Расписание -->
-    <div class="tt-schedule-detail__schedule">
-        <h2 class="tt-schedule-detail__schedule-title">Расписание работы</h2>
+        <!-- Расписание справа -->
+        <div class="tt-schedule-detail__schedule">
+        <div class="tt-schedule-detail__schedule-header">
+            <h2 class="tt-schedule-detail__schedule-title">Расписание работы</h2>
+            
+            <!-- Навигация по неделям -->
+            <div class="tt-schedule-detail__week-nav">
+                <button type="button" class="tt-schedule-detail__week-nav-btn" onclick="TtSchedule.changeWeek(-1)" id="tt-week-prev">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="15 18 9 12 15 6"/>
+                    </svg>
+                    Предыдущая неделя
+                </button>
+                <div class="tt-schedule-detail__week-range" id="tt-week-range">
+                    <?= htmlspecialcharsbx($weekRange) ?>
+                </div>
+                <button type="button" class="tt-schedule-detail__week-nav-btn" onclick="TtSchedule.changeWeek(1)" id="tt-week-next">
+                    Следующая неделя
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="9 18 15 12 9 6"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
 
-        <div class="tt-schedule-detail__days">
-            <?php for ($day = 1; $day <= 7; $day++):
-                $dayData = $schedule[$day] ?? $defaults;
-                $isWorking = (int)($dayData['is_working'] ?? 1);
+        <div class="tt-schedule-detail__days" id="tt-schedule-week-days">
+            <?php foreach ($weekDays as $dayInfo):
+                $day = $dayInfo['day_of_week'];
+                $dateStr = $dayInfo['date'];
+                
+                // Если расписание не настроено для этого дня, используем дефолт как выходной
+                $dayData = $schedule[$day] ?? null;
+                if ($dayData === null) {
+                    $isWorking = 0;
+                    $dayData = ['is_working' => 0, 'time_start' => '', 'time_end' => '', 'break_start' => '', 'break_end' => ''];
+                } else {
+                    $isWorking = (int)($dayData['is_working'] ?? 0);
+                }
                 $isWeekend = ($day >= 6);
+                $isToday = ($dateStr === date('Y-m-d'));
                 $cardClass = 'tt-schedule-detail__day';
                 if (!$isWorking) $cardClass .= ' tt-schedule-detail__day--off';
                 if ($isWeekend) $cardClass .= ' tt-schedule-detail__day--weekend';
+                if ($isToday) $cardClass .= ' tt-schedule-detail__day--today';
             ?>
-                <div class="<?= $cardClass ?>">
+                <div class="<?= $cardClass ?>" data-day="<?= $day ?>" data-date="<?= $dateStr ?>">
                     <div class="tt-schedule-detail__day-header">
                         <div class="tt-schedule-detail__day-name">
-                            <span class="tt-schedule-detail__day-short"><?= $days[$day]['SHORT'] ?></span>
-                            <span class="tt-schedule-detail__day-full"><?= $days[$day]['NAME'] ?></span>
+                            <span class="tt-schedule-detail__day-short"><?= $dayInfo['day_short'] ?></span>
+                            <span class="tt-schedule-detail__day-full"><?= $dayInfo['day_name'] ?></span>
+                            <span class="tt-schedule-detail__day-date"><?= $dayInfo['day'] ?>.<?= $dayInfo['month'] ?></span>
                         </div>
                         <span class="tt-schedule-detail__day-badge tt-schedule-detail__day-badge--<?= $isWorking ? 'working' : 'off' ?>">
-                            <?= $isWorking ? 'Рабочий день' : 'Выходной' ?>
+                            <?= $isWorking ? 'Рабочий' : 'Выходной' ?>
                         </span>
                     </div>
 
-                    <?php if ($isWorking): ?>
+                    <?php if ($isWorking && !empty($dayData['time_start']) && !empty($dayData['time_end'])): ?>
                         <div class="tt-schedule-detail__day-body">
                             <div class="tt-schedule-detail__time">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -128,7 +204,7 @@ $sefFolder = $arResult['SEF_FOLDER'];
                         </div>
                     <?php endif; ?>
                 </div>
-            <?php endfor; ?>
+            <?php endforeach; ?>
         </div>
 
         <!-- Итого -->
@@ -169,18 +245,48 @@ $sefFolder = $arResult['SEF_FOLDER'];
             <div class="tt-schedule-detail__summary-divider"></div>
             <div class="tt-schedule-detail__summary-item">
                 <span class="tt-schedule-detail__summary-number"><?= number_format($totalHours, 1) ?></span>
-                <span class="tt-schedule-detail__summary-label">часов в неделю</span>
+                <span class="tt-schedule-detail__summary-label">часов</span>
             </div>
+        </div>
+        </div>
+    </div>
+
+    <!-- Календарь приёма на месяц -->
+    <div class="tt-schedule-detail__calendar">
+        <h2 class="tt-schedule-detail__calendar-title">Запись на приём</h2>
+        <div class="tt-schedule-detail__calendar-month" 
+             id="tt-calendar-month"
+             data-lang-appointment-title="Запись на приём"
+             data-lang-no-time="Нет доступного времени"
+             data-lang-cancel="Отмена"
+             data-lang-submit="Записаться"
+             data-lang-select-time="Выберите время"
+             data-lang-appointment-msg="Вы записаны на"
+             data-lang-badge="Запись">
         </div>
     </div>
 
     <!-- Кнопка "Назад к списку" -->
     <div class="tt-schedule-detail__back">
-        <a href="<?= $sefFolder ?>" class="tt-schedule-detail__back-link">
+        <?php
+        // Формируем правильный URL для списка
+        if ($arParams['SEF_MODE'] === 'Y') {
+            $backUrl = $sefFolder;
+        } else {
+            $backUrl = '?';
+        }
+        ?>
+        <a href="<?= htmlspecialcharsbx($backUrl) ?>" class="tt-schedule-detail__back-link">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="15 18 9 12 15 6"/>
             </svg>
-            Вернуться к списку врачей
+            Назад к списку
         </a>
     </div>
 </div>
+
+<input type="hidden" name="sessid" value="<?= bitrix_sessid() ?>">
+<script>
+    window.ttScheduleAjaxUrl = '<?= $this->GetFolder() ?>/ajax.php';
+</script>
+<script src="<?= $this->GetFolder() ?>/script.js"></script>

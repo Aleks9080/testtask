@@ -156,8 +156,11 @@
 }
 
 .tt-schedule-preset-btn {
-    padding: 7px 14px;
-    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    font-size: 14px;
     font-family: var(--tt-font);
     font-weight: 500;
     color: var(--tt-gray-700);
@@ -167,6 +170,14 @@
     cursor: pointer;
     transition: all var(--tt-transition);
     white-space: nowrap;
+    min-width: 120px;
+    text-align: center;
+}
+
+.tt-schedule-preset-btn__icon {
+    font-size: 16px;
+    line-height: 1;
+    display: inline-block;
 }
 
 .tt-schedule-preset-btn:hover {
@@ -786,6 +797,26 @@
     margin-top: 8px;
 }
 
+/* --- Настройки фильтрации --- */
+.tt-schedule-filter-settings {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 8px;
+}
+
+.tt-schedule-filter-setting {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.tt-schedule-filter-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--tt-gray-600);
+}
+
 /* --- Responsive --- */
 @media (max-width: 900px) {
     .tt-schedule-days {
@@ -835,4 +866,149 @@
         flex-direction: column;
         gap: 10px;
     }
+}
+
+/* ========== НАВИГАЦИЯ ПО НЕДЕЛЯМ ========== */
+.tt-schedule-week-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    padding: 16px 20px;
+    background: #fff;
+    border-radius: var(--tt-radius);
+    border: 2px solid var(--tt-gray-200);
+    box-shadow: var(--tt-shadow);
+}
+
+.tt-schedule-week-nav__btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--tt-primary);
+    background: var(--tt-primary-light);
+    border: 2px solid var(--tt-primary);
+    border-radius: var(--tt-radius-sm);
+    cursor: pointer;
+    transition: all var(--tt-transition);
+    font-family: var(--tt-font);
+    white-space: nowrap;
+}
+
+.tt-schedule-week-nav__btn svg {
+    flex-shrink: 0;
+}
+
+.tt-schedule-week-nav__btn:hover:not(:disabled) {
+    background: var(--tt-primary);
+    color: #fff;
+}
+
+.tt-schedule-week-nav__btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.tt-schedule-week-nav__info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--tt-gray-800);
+}
+
+.tt-schedule-week-nav__dates {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--tt-gray-600);
+}
+
+/* ========== НЕДЕЛЯ ========== */
+.tt-schedule-week {
+    margin-bottom: 32px;
+}
+
+.tt-schedule-week__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    padding: 12px 20px;
+    background: var(--tt-primary-light);
+    border-radius: var(--tt-radius);
+    border: 2px solid var(--tt-primary);
+}
+
+.tt-schedule-week__title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--tt-primary);
+}
+
+.tt-schedule-week__dates {
+    font-size: 14px;
+    color: var(--tt-gray-600);
+    font-weight: 600;
+}
+
+/* ========== ДЕНЬ КАЛЕНДАРЯ ========== */
+.tt-schedule-day__date {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--tt-gray-900);
+    margin-right: 8px;
+}
+
+.tt-schedule-day--today {
+    border-color: var(--tt-primary) !important;
+    background: var(--tt-primary-light) !important;
+}
+
+.tt-schedule-day--today .tt-schedule-day__date {
+    color: var(--tt-primary);
+}
+
+/* ========== ПЕРЕКЛЮЧАТЕЛЬ ТЕМЫ ========== */
+.tt-theme-toggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: var(--tt-gray-100);
+    border: 2px solid var(--tt-gray-200);
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all var(--tt-transition);
+    box-shadow: var(--tt-shadow-md);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--tt-gray-700);
+    font-family: var(--tt-font);
+}
+
+.tt-theme-toggle:hover {
+    border-color: var(--tt-primary);
+    background: var(--tt-primary-light);
+    color: var(--tt-primary);
+}
+
+.tt-theme-toggle svg {
+    width: 18px;
+    height: 18px;
+}
+
+.tt-theme-dark .tt-theme-toggle {
+    background: var(--tt-gray-200);
+    border-color: var(--tt-gray-300);
+    color: var(--tt-gray-800);
 }

@@ -12,18 +12,15 @@
 require_once $_SERVER['DOCUMENT_ROOT'] . '/bitrix/modules/main/include/prolog_admin_before.php';
 
 use Bitrix\Main\Loader;
-use Bitrix\Main\Localization\Loc;
-
-Loc::loadMessages(__FILE__);
 
 // Проверка прав доступа
 if (!$USER->IsAdmin()) {
-    $APPLICATION->AuthForm(Loc::getMessage('TESTTASK_SCHEDULE_ACCESS_DENIED'));
+    $APPLICATION->AuthForm('Доступ запрещён');
 }
 
 // Проверка установки модулей
 if (!Loader::includeModule('testtask.schedule')) {
-    ShowError(Loc::getMessage('TESTTASK_SCHEDULE_MODULE_NOT_INSTALLED'));
+    ShowError('Модуль testtask.schedule не установлен');
     require $_SERVER['DOCUMENT_ROOT'] . '/bitrix/modules/main/include/prolog_admin_after.php';
     require $_SERVER['DOCUMENT_ROOT'] . '/bitrix/modules/main/include/epilog_admin.php';
     return;
@@ -37,13 +34,29 @@ if (!Loader::includeModule('iblock')) {
 }
 
 use Testtask\Schedule\ScheduleTable;
+use Bitrix\Main\Config\Option;
 
 // Заголовок страницы
-$APPLICATION->SetTitle(Loc::getMessage('TESTTASK_SCHEDULE_PAGE_TITLE'));
+$APPLICATION->SetTitle('Расписание врача');
 
-// Параметры из GET
-$iblockId = (int)($_REQUEST['iblock_id'] ?? 0);
+// Параметры из GET или сохранённые настройки
+$iblockId = (int)($_REQUEST['iblock_id'] ?? Option::get('testtask.schedule', 'default_iblock_id', 0));
+$specIblockId = (int)($_REQUEST['spec_iblock_id'] ?? Option::get('testtask.schedule', 'spec_iblock_id', 0));
+$specProperty = $_REQUEST['spec_property'] ?? Option::get('testtask.schedule', 'spec_property', 'DOCTOR_ID');
 $doctorId = (int)($_REQUEST['doctor_id'] ?? 0);
+
+// Автоматическое сохранение настроек при изменении (если переданы параметры)
+if (check_bitrix_sessid()) {
+    if (isset($_REQUEST['iblock_id']) && $_REQUEST['iblock_id'] != Option::get('testtask.schedule', 'default_iblock_id', 0)) {
+        Option::set('testtask.schedule', 'default_iblock_id', (int)$_REQUEST['iblock_id']);
+    }
+    if (isset($_REQUEST['spec_iblock_id']) && $_REQUEST['spec_iblock_id'] != Option::get('testtask.schedule', 'spec_iblock_id', 0)) {
+        Option::set('testtask.schedule', 'spec_iblock_id', (int)$_REQUEST['spec_iblock_id']);
+    }
+    if (isset($_REQUEST['spec_property']) && $_REQUEST['spec_property'] != Option::get('testtask.schedule', 'spec_property', 'DOCTOR_ID')) {
+        Option::set('testtask.schedule', 'spec_property', $_REQUEST['spec_property']);
+    }
+}
 
 // ========== 1. Получаем список инфоблоков ==========
 $iblocks = [];
@@ -56,7 +69,22 @@ while ($ib = $rsIblocks->Fetch()) {
     $iblocks[$ib['ID']] = '[' . $ib['ID'] . '] ' . $ib['NAME'] . ' (' . $typeName . ')';
 }
 
-// ========== 2. Получаем список врачей (элементы выбранного инфоблока) ==========
+// ========== 2. Получаем свойства инфоблока со специальностями ==========
+$specProperties = [];
+if ($specIblockId > 0) {
+    $rsProps = \CIBlockProperty::GetList(
+        ['SORT' => 'ASC', 'NAME' => 'ASC'],
+        ['IBLOCK_ID' => $specIblockId, 'ACTIVE' => 'Y']
+    );
+    while ($prop = $rsProps->Fetch()) {
+        // Только свойства типа "Привязка к элементам"
+        if ($prop['PROPERTY_TYPE'] === 'E') {
+            $specProperties[$prop['CODE']] = $prop['NAME'] . ' (' . $prop['CODE'] . ')';
+        }
+    }
+}
+
+// ========== 3. Получаем список врачей (элементы выбранного инфоблока) ==========
 $doctors = [];
 if ($iblockId > 0) {
     $rsElements = \CIBlockElement::GetList(
@@ -73,18 +101,91 @@ if ($iblockId > 0) {
     }
 }
 
-// ========== 3. Загружаем расписание врача ==========
+// ========== 4. Загружаем расписание врача ==========
 $schedule = [];
 if ($doctorId > 0) {
-    $schedule = ScheduleTable::getScheduleByDoctor($doctorId);
+    // Определяем диапазон дат для загрузки (35 дней от текущей недели)
+    $today = new DateTime();
+    $weekStartDate = clone $today;
+    $dayOfWeek = (int)$today->format('N');
+    if ($dayOfWeek > 1) {
+        $weekStartDate->modify('-' . ($dayOfWeek - 1) . ' days');
+    }
+    $endDate = clone $weekStartDate;
+    $endDate->modify('+34 days'); // 35 дней
+    
+    $startDateObj = new \Bitrix\Main\Type\Date($weekStartDate->format('Y-m-d'), 'Y-m-d');
+    $endDateObj = new \Bitrix\Main\Type\Date($endDate->format('Y-m-d'), 'Y-m-d');
+    
+    $schedule = ScheduleTable::getScheduleByDoctor($doctorId, $startDateObj, $endDateObj);
 }
 
-// Дни недели
+// Генерируем календарь на 35 дней (5 недель) начиная с сегодня
+$today = new DateTime();
+$calendarDays = [];
+$currentWeek = 1;
+$weekStartDate = clone $today;
+
+// Находим начало текущей недели (понедельник)
+$dayOfWeek = (int)$today->format('N'); // 1=Пн, 7=Вс
+if ($dayOfWeek > 1) {
+    $weekStartDate->modify('-' . ($dayOfWeek - 1) . ' days');
+}
+
+$dayIndex = 0;
+for ($i = 0; $i < 35; $i++) {
+    $date = clone $weekStartDate;
+    $date->modify('+' . $i . ' days');
+    
+    // Пропускаем прошедшие дни
+    $todayStart = clone $today;
+    $todayStart->setTime(0, 0, 0);
+    $dateStart = clone $date;
+    $dateStart->setTime(0, 0, 0);
+    
+    if ($dateStart < $todayStart) {
+        continue;
+    }
+    
+    $dayOfWeekNum = (int)$date->format('N'); // 1=Пн, 7=Вс
+    $weekNum = (int)floor($dayIndex / 7) + 1; // Номер недели на основе индекса дня
+    
+    // Получаем расписание для этой даты (если есть)
+    $dateStr = $date->format('Y-m-d');
+    $daySchedule = $schedule[$dateStr] ?? $defaultSchedule;
+    
+    $calendarDays[] = [
+        'date' => $date->format('Y-m-d'),
+        'day' => (int)$date->format('d'),
+        'month' => (int)$date->format('m'),
+        'year' => (int)$date->format('Y'),
+        'day_of_week' => $dayOfWeekNum,
+        'day_name' => ['', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'][$dayOfWeekNum],
+        'day_short' => ['', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'][$dayOfWeekNum],
+        'week' => $weekNum,
+        'is_weekend' => $dayOfWeekNum >= 6,
+        'schedule' => $daySchedule,
+    ];
+    
+    $dayIndex++;
+}
+
+// Группируем по неделям
+$weeks = [];
+foreach ($calendarDays as $day) {
+    $weekNum = $day['week'];
+    if (!isset($weeks[$weekNum])) {
+        $weeks[$weekNum] = [];
+    }
+    $weeks[$weekNum][] = $day;
+}
+
+// Дни недели для заголовков
 $daysOfWeek = [];
 for ($i = 1; $i <= 7; $i++) {
     $daysOfWeek[$i] = [
-        'name' => Loc::getMessage('TESTTASK_SCHEDULE_DAY_' . $i),
-        'short' => Loc::getMessage('TESTTASK_SCHEDULE_DAY_SHORT_' . $i),
+        'name' => ['', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'][$i],
+        'short' => ['', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'][$i],
     ];
 }
 
@@ -121,6 +222,9 @@ require $_SERVER['DOCUMENT_ROOT'] . '/bitrix/modules/main/include/prolog_admin_a
         </div>
     </div>
 
+    <!-- Скрытое поле sessid для JavaScript -->
+    <input type="hidden" id="tt-sessid" value="<?= bitrix_sessid() ?>">
+
     <!-- Шаг 1: Выбор инфоблока -->
     <div class="tt-schedule-selector-card">
         <div class="tt-schedule-selector-step">
@@ -143,6 +247,52 @@ require $_SERVER['DOCUMENT_ROOT'] . '/bitrix/modules/main/include/prolog_admin_a
             </div>
         </div>
 
+        <!-- Настройка фильтрации по специальностям (опционально) -->
+        <div class="tt-schedule-selector-step">
+            <span class="tt-schedule-step-number">⚙</span>
+            <div class="tt-schedule-selector-content">
+                <label class="tt-schedule-label">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24"/>
+                    </svg>
+                    Настройка фильтрации по специальностям (опционально)
+                </label>
+                <div class="tt-schedule-filter-settings">
+                    <div class="tt-schedule-filter-setting">
+                        <label for="tt-spec-iblock-id" class="tt-schedule-filter-label">Инфоблок со специальностями:</label>
+                        <select id="tt-spec-iblock-id" class="tt-schedule-select" onchange="TtSchedule.changeSpecIblock(this.value)">
+                            <option value="0">— Не использовать —</option>
+                            <?php foreach ($iblocks as $id => $name): ?>
+                                <option value="<?= $id ?>" <?= $id === $specIblockId ? 'selected' : '' ?>>
+                                    <?= htmlspecialcharsbx($name) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <?php if ($specIblockId > 0): ?>
+                    <div class="tt-schedule-filter-setting">
+                        <label for="tt-spec-property" class="tt-schedule-filter-label">Код свойства связи (должен быть DOCTOR_ID):</label>
+                        <select id="tt-spec-property" class="tt-schedule-select" onchange="TtSchedule.changeSpecProperty(this.value)">
+                            <option value="">— Выберите свойство —</option>
+                            <?php foreach ($specProperties as $code => $name): ?>
+                                <option value="<?= htmlspecialcharsbx($code) ?>" <?= $code === $specProperty ? 'selected' : '' ?>>
+                                    <?= htmlspecialcharsbx($name) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <?php if (empty($specProperties)): ?>
+                            <div class="tt-schedule-no-items" style="margin-top: 8px;">
+                                В выбранном инфоблоке нет свойств типа "Привязка к элементам"
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+
         <?php if ($iblockId > 0): ?>
         <!-- Шаг 2: Выбор врача -->
         <div class="tt-schedule-selector-step">
@@ -153,7 +303,7 @@ require $_SERVER['DOCUMENT_ROOT'] . '/bitrix/modules/main/include/prolog_admin_a
                         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
                         <circle cx="12" cy="7" r="4"/>
                     </svg>
-                    <?= Loc::getMessage('TESTTASK_SCHEDULE_DOCTOR_LABEL') ?>
+                    Выберите врача
                 </label>
 
                 <?php if (empty($doctors)): ?>
@@ -224,124 +374,165 @@ require $_SERVER['DOCUMENT_ROOT'] . '/bitrix/modules/main/include/prolog_admin_a
         <div class="tt-schedule-presets">
             <span class="tt-schedule-presets__label">Быстрые шаблоны:</span>
             <button type="button" class="tt-schedule-preset-btn" onclick="TtSchedule.applyPreset('standard')">
-                🏢 Стандартная неделя
+                <span class="tt-schedule-preset-btn__icon">🏢</span>
+                Стандартная неделя
             </button>
             <button type="button" class="tt-schedule-preset-btn" onclick="TtSchedule.applyPreset('short')">
-                ⏱ Сокращённая неделя
+                <span class="tt-schedule-preset-btn__icon">⏱</span>
+                Сокращённая неделя
             </button>
             <button type="button" class="tt-schedule-preset-btn" onclick="TtSchedule.applyPreset('shift')">
-                🔄 Сменный график
+                <span class="tt-schedule-preset-btn__icon">🔄</span>
+                Сменный график
             </button>
             <button type="button" class="tt-schedule-preset-btn" onclick="TtSchedule.applyPreset('clear')">
-                ✖ Очистить всё
+                <span class="tt-schedule-preset-btn__icon">✖</span>
+                Очистить всё
             </button>
         </div>
 
-        <!-- Дни недели -->
-        <div class="tt-schedule-days">
-            <?php for ($day = 1; $day <= 7; $day++):
-                $dayData = $schedule[$day] ?? $defaultSchedule;
-                $isWorking = (int)($dayData['is_working'] ?? 1);
-                $isWeekend = ($day >= 6);
-                $cardClass = 'tt-schedule-day';
-                if (!$isWorking) $cardClass .= ' tt-schedule-day--off';
-                if ($isWeekend) $cardClass .= ' tt-schedule-day--weekend';
-            ?>
-                <div class="<?= $cardClass ?>" data-day="<?= $day ?>">
-                    <div class="tt-schedule-day__header">
-                        <div class="tt-schedule-day__name">
-                            <span class="tt-schedule-day__short"><?= $daysOfWeek[$day]['short'] ?></span>
-                            <span class="tt-schedule-day__full"><?= $daysOfWeek[$day]['name'] ?></span>
-                        </div>
-                        <label class="tt-schedule-toggle">
-                            <input type="checkbox"
-                                   name="days[<?= $day ?>][is_working]"
-                                   value="1"
-                                   <?= $isWorking ? 'checked' : '' ?>
-                                   onchange="TtSchedule.toggleDay(<?= $day ?>, this.checked)">
-                            <span class="tt-schedule-toggle__slider"></span>
-                            <span class="tt-schedule-toggle__label">
-                                <?= $isWorking ? 'Рабочий' : 'Выходной' ?>
-                            </span>
-                        </label>
-                    </div>
-
-                    <div class="tt-schedule-day__body" <?= !$isWorking ? 'style="display:none"' : '' ?>>
-                        <div class="tt-schedule-time-group">
-                            <div class="tt-schedule-time-group__label">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"/>
-                                    <polyline points="12 6 12 12 16 14"/>
-                                </svg>
-                                Время приёма
-                            </div>
-                            <div class="tt-schedule-time-row">
-                                <div class="tt-schedule-time-field">
-                                    <label>с</label>
-                                    <input type="time"
-                                           name="days[<?= $day ?>][time_start]"
-                                           value="<?= htmlspecialcharsbx($dayData['time_start'] ?? '09:00') ?>"
-                                           class="tt-schedule-time-input">
-                                </div>
-                                <div class="tt-schedule-time-separator">—</div>
-                                <div class="tt-schedule-time-field">
-                                    <label>до</label>
-                                    <input type="time"
-                                           name="days[<?= $day ?>][time_end]"
-                                           value="<?= htmlspecialcharsbx($dayData['time_end'] ?? '18:00') ?>"
-                                           class="tt-schedule-time-input">
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="tt-schedule-time-group tt-schedule-time-group--break">
-                            <div class="tt-schedule-time-group__label">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M18 8h1a4 4 0 0 1 0 8h-1"/>
-                                    <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
-                                    <line x1="6" y1="1" x2="6" y2="4"/>
-                                    <line x1="10" y1="1" x2="10" y2="4"/>
-                                    <line x1="14" y1="1" x2="14" y2="4"/>
-                                </svg>
-                                Перерыв
-                            </div>
-                            <div class="tt-schedule-time-row">
-                                <div class="tt-schedule-time-field">
-                                    <label>с</label>
-                                    <input type="time"
-                                           name="days[<?= $day ?>][break_start]"
-                                           value="<?= htmlspecialcharsbx($dayData['break_start'] ?? '') ?>"
-                                           class="tt-schedule-time-input tt-schedule-time-input--break">
-                                </div>
-                                <div class="tt-schedule-time-separator">—</div>
-                                <div class="tt-schedule-time-field">
-                                    <label>до</label>
-                                    <input type="time"
-                                           name="days[<?= $day ?>][break_end]"
-                                           value="<?= htmlspecialcharsbx($dayData['break_end'] ?? '') ?>"
-                                           class="tt-schedule-time-input tt-schedule-time-input--break">
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="tt-schedule-day__hours">
-                            <span class="tt-schedule-day__hours-value" id="hours-<?= $day ?>">—</span>
-                            <span class="tt-schedule-day__hours-label">часов</span>
-                        </div>
-                    </div>
-
-                    <div class="tt-schedule-day__off-message" <?= $isWorking ? 'style="display:none"' : '' ?>>
-                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                            <circle cx="9" cy="7" r="4"/>
-                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                        </svg>
-                        <span>Выходной день</span>
-                    </div>
-                </div>
-            <?php endfor; ?>
+        <!-- Навигация по неделям -->
+        <div class="tt-schedule-week-nav">
+            <button type="button" class="tt-schedule-week-nav__btn" id="tt-week-prev" onclick="TtSchedule.showWeek(-1)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="15 18 9 12 15 6"/>
+                </svg>
+                Предыдущая неделя
+            </button>
+            <div class="tt-schedule-week-nav__info">
+                <span id="tt-current-week">Неделя 1</span>
+                <span id="tt-current-week-dates" class="tt-schedule-week-nav__dates"></span>
+            </div>
+            <button type="button" class="tt-schedule-week-nav__btn" id="tt-week-next" onclick="TtSchedule.showWeek(1)">
+                Следующая неделя
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="9 18 15 12 9 6"/>
+                </svg>
+            </button>
         </div>
+
+        <!-- Календарь по неделям -->
+        <?php foreach ($weeks as $weekNum => $weekDays): ?>
+        <div class="tt-schedule-week" data-week="<?= $weekNum ?>" <?= $weekNum > 1 ? 'style="display:none"' : '' ?>>
+            <div class="tt-schedule-week__header">
+                <h3 class="tt-schedule-week__title">Неделя <?= $weekNum ?></h3>
+                <?php if (!empty($weekDays)): ?>
+                    <span class="tt-schedule-week__dates">
+                        <?= date('d.m', strtotime($weekDays[0]['date'])) ?> — 
+                        <?= date('d.m.Y', strtotime($weekDays[count($weekDays) - 1]['date'])) ?>
+                    </span>
+                <?php endif; ?>
+            </div>
+            
+            <div class="tt-schedule-days">
+                <?php foreach ($weekDays as $day):
+                    $dayData = $day['schedule'];
+                    $isWorking = (int)($dayData['is_working'] ?? 1);
+                    $isWeekend = $day['is_weekend'];
+                    $isToday = ($day['date'] === date('Y-m-d'));
+                    $cardClass = 'tt-schedule-day';
+                    if (!$isWorking) $cardClass .= ' tt-schedule-day--off';
+                    if ($isWeekend) $cardClass .= ' tt-schedule-day--weekend';
+                    if ($isToday) $cardClass .= ' tt-schedule-day--today';
+                ?>
+                    <div class="<?= $cardClass ?>" data-date="<?= $day['date'] ?>" data-day-of-week="<?= $day['day_of_week'] ?>">
+                        <div class="tt-schedule-day__header">
+                            <div class="tt-schedule-day__name">
+                                <span class="tt-schedule-day__date"><?= $day['day'] ?></span>
+                                <span class="tt-schedule-day__short"><?= $day['day_short'] ?></span>
+                                <span class="tt-schedule-day__full"><?= $day['day_name'] ?></span>
+                            </div>
+                            <label class="tt-schedule-toggle">
+                                <input type="checkbox"
+                                       name="days[<?= $day['date'] ?>][is_working]"
+                                       value="1"
+                                       <?= $isWorking ? 'checked' : '' ?>
+                                       onchange="TtSchedule.toggleDay('<?= $day['date'] ?>', this.checked)">
+                                <span class="tt-schedule-toggle__slider"></span>
+                                <span class="tt-schedule-toggle__label">
+                                    <?= $isWorking ? 'Рабочий' : 'Выходной' ?>
+                                </span>
+                            </label>
+                        </div>
+
+                        <div class="tt-schedule-day__body" <?= !$isWorking ? 'style="display:none"' : '' ?>>
+                            <div class="tt-schedule-time-group">
+                                <div class="tt-schedule-time-group__label">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"/>
+                                        <polyline points="12 6 12 12 16 14"/>
+                                    </svg>
+                                    Время приёма
+                                </div>
+                                <div class="tt-schedule-time-row">
+                                    <div class="tt-schedule-time-field">
+                                        <label>с</label>
+                                        <input type="time"
+                                               name="days[<?= $day['date'] ?>][time_start]"
+                                               value="<?= htmlspecialcharsbx($dayData['time_start'] ?? '09:00') ?>"
+                                               class="tt-schedule-time-input">
+                                    </div>
+                                    <div class="tt-schedule-time-separator">—</div>
+                                    <div class="tt-schedule-time-field">
+                                        <label>до</label>
+                                        <input type="time"
+                                               name="days[<?= $day['date'] ?>][time_end]"
+                                               value="<?= htmlspecialcharsbx($dayData['time_end'] ?? '18:00') ?>"
+                                               class="tt-schedule-time-input">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="tt-schedule-time-group tt-schedule-time-group--break">
+                                <div class="tt-schedule-time-group__label">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M18 8h1a4 4 0 0 1 0 8h-1"/>
+                                        <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
+                                        <line x1="6" y1="1" x2="6" y2="4"/>
+                                        <line x1="10" y1="1" x2="10" y2="4"/>
+                                        <line x1="14" y1="1" x2="14" y2="4"/>
+                                    </svg>
+                                    Перерыв
+                                </div>
+                                <div class="tt-schedule-time-row">
+                                    <div class="tt-schedule-time-field">
+                                        <label>с</label>
+                                        <input type="time"
+                                               name="days[<?= $day['date'] ?>][break_start]"
+                                               value="<?= htmlspecialcharsbx($dayData['break_start'] ?? '') ?>"
+                                               class="tt-schedule-time-input tt-schedule-time-input--break">
+                                    </div>
+                                    <div class="tt-schedule-time-separator">—</div>
+                                    <div class="tt-schedule-time-field">
+                                        <label>до</label>
+                                        <input type="time"
+                                               name="days[<?= $day['date'] ?>][break_end]"
+                                               value="<?= htmlspecialcharsbx($dayData['break_end'] ?? '') ?>"
+                                               class="tt-schedule-time-input tt-schedule-time-input--break">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="tt-schedule-day__hours">
+                                <span class="tt-schedule-day__hours-value" id="hours-<?= $day['date'] ?>">—</span>
+                                <span class="tt-schedule-day__hours-label">часов</span>
+                            </div>
+                        </div>
+
+                        <div class="tt-schedule-day__off-message" <?= $isWorking ? 'style="display:none"' : '' ?>>
+                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                <circle cx="9" cy="7" r="4"/>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                            </svg>
+                            <span>Выходной день</span>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+        <?php endforeach; ?>
 
         <!-- Итого -->
         <div class="tt-schedule-summary">
@@ -357,7 +548,7 @@ require $_SERVER['DOCUMENT_ROOT'] . '/bitrix/modules/main/include/prolog_admin_a
         </div>
 
         <div class="tt-schedule-actions">
-            <button type="submit" class="tt-schedule-save-btn" id="tt-save-btn">
+            <button type="submit" class="tt-schedule-save-btn" id="tt-save-btn" data-save-text="Сохранить расписание">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
                     <polyline points="17 21 17 13 7 13 7 21"/>

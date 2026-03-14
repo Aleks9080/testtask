@@ -55,6 +55,52 @@
     color: var(--tt-gray-500);
 }
 
+.tt-schedule-list__filter {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+    padding: 16px 20px;
+    background: #fff;
+    border-radius: var(--tt-radius);
+    border: 2px solid var(--tt-gray-200);
+    box-shadow: var(--tt-shadow);
+}
+
+.tt-schedule-list__filter-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--tt-gray-700);
+    white-space: nowrap;
+}
+
+.tt-schedule-list__filter-label svg {
+    color: var(--tt-primary);
+}
+
+.tt-schedule-list__filter-select {
+    flex: 1;
+    max-width: 300px;
+    padding: 8px 12px;
+    font-size: 14px;
+    font-family: var(--tt-font);
+    border: 2px solid var(--tt-gray-200);
+    border-radius: var(--tt-radius-sm);
+    background: var(--tt-gray-50);
+    color: var(--tt-gray-800);
+    cursor: pointer;
+    transition: all var(--tt-transition);
+    outline: none;
+}
+
+.tt-schedule-list__filter-select:focus {
+    border-color: var(--tt-primary);
+    box-shadow: 0 0 0 3px rgba(79, 110, 247, .15);
+}
+
 .tt-schedule-list__grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -155,9 +201,23 @@
     color: var(--tt-gray-800);
 }
 
-.tt-schedule-detail__header {
+/* Основной контент: врач слева, расписание справа */
+.tt-schedule-detail__main {
+    display: grid;
+    grid-template-columns: 350px 1fr;
+    gap: 32px;
+    margin-bottom: 40px;
+}
+
+.tt-schedule-detail__doctor {
     display: flex;
-    align-items: flex-start;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.tt-schedule-detail__header {
+    display: grid;
+    grid-template-columns: 300px 1fr;
     gap: 24px;
     margin-bottom: 40px;
     padding: 24px;
@@ -167,6 +227,83 @@
     box-shadow: var(--tt-shadow-lg);
 }
 
+.tt-schedule-detail__photo-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 24px;
+    background: linear-gradient(135deg, var(--tt-primary) 0%, #7c5ef7 100%);
+    border-radius: var(--tt-radius);
+    color: #fff;
+    box-shadow: var(--tt-shadow-lg);
+}
+
+.tt-schedule-detail__specializations {
+    background: #fff;
+    border-radius: var(--tt-radius);
+    padding: 20px;
+    border: 2px solid var(--tt-gray-200);
+    box-shadow: var(--tt-shadow);
+}
+
+.tt-schedule-detail__specializations-title {
+    margin: 0 0 16px;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--tt-gray-900);
+}
+
+.tt-schedule-detail__specializations-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.tt-schedule-detail__specialization-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: var(--tt-gray-50);
+    border-radius: var(--tt-radius-sm);
+    transition: all var(--tt-transition);
+}
+
+.tt-schedule-detail__specialization-item:hover {
+    background: var(--tt-gray-100);
+}
+
+.tt-schedule-detail__specialization-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--tt-primary-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.tt-schedule-detail__specialization-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.tt-schedule-detail__specialization-icon svg {
+    width: 18px;
+    height: 18px;
+    color: var(--tt-primary);
+}
+
+.tt-schedule-detail__specialization-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--tt-gray-800);
+}
+
 .tt-schedule-detail__photo {
     width: 120px;
     height: 120px;
@@ -174,7 +311,8 @@
     overflow: hidden;
     background: rgba(255,255,255,.2);
     flex-shrink: 0;
-    border: 3px solid rgba(255,255,255,.3);
+    border: 3px solid rgba(255,255,255,.5);
+    margin-bottom: 16px;
 }
 
 .tt-schedule-detail__photo img {
@@ -192,6 +330,7 @@
     font-size: 28px;
     font-weight: 800;
     letter-spacing: -.02em;
+    color: #fff;
 }
 
 .tt-schedule-detail__preview {
@@ -202,13 +341,77 @@
 
 .tt-schedule-detail__schedule {
     margin-bottom: 32px;
+    background: #fff;
+    border-radius: var(--tt-radius);
+    padding: 24px;
+    border: 2px solid var(--tt-gray-200);
+    box-shadow: var(--tt-shadow);
+}
+
+.tt-schedule-detail__schedule-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 16px;
 }
 
 .tt-schedule-detail__schedule-title {
-    margin: 0 0 24px;
+    margin: 0;
     font-size: 24px;
     font-weight: 700;
     color: var(--tt-gray-900);
+}
+
+.tt-schedule-detail__week-nav {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.tt-schedule-detail__week-nav-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--tt-primary);
+    background: #fff;
+    border: 1px solid var(--tt-primary);
+    border-radius: var(--tt-radius);
+    cursor: pointer;
+    transition: all var(--tt-transition);
+}
+
+.tt-schedule-detail__week-nav-btn:hover {
+    background: var(--tt-primary);
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: var(--tt-shadow);
+}
+
+.tt-schedule-detail__week-nav-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.tt-schedule-detail__week-range {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--tt-gray-700);
+    padding: 8px 16px;
+    background: var(--tt-gray-50);
+    border-radius: var(--tt-radius);
+    white-space: nowrap;
+}
+
+.tt-schedule-detail__day-date {
+    font-size: 12px;
+    color: var(--tt-gray-500);
+    margin-left: 4px;
 }
 
 .tt-schedule-detail__days {
@@ -408,11 +611,376 @@
     text-decoration: none;
 }
 
+/* ========== КАЛЕНДАРЬ ПРИЁМА ========== */
+.tt-schedule-detail__calendar {
+    margin-bottom: 32px;
+}
+
+.tt-schedule-detail__calendar-title {
+    margin: 0 0 24px;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--tt-gray-900);
+}
+
+.tt-calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+    background: #fff;
+    border-radius: var(--tt-radius);
+    border: 2px solid var(--tt-gray-200);
+    padding: 16px;
+    box-shadow: var(--tt-shadow);
+}
+
+.tt-calendar-header {
+    display: contents;
+}
+
+.tt-calendar-day-name {
+    text-align: center;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--tt-gray-500);
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    padding: 8px 4px;
+    margin-bottom: 4px;
+}
+
+.tt-calendar-day-empty {
+    min-height: 100px;
+}
+
+.tt-calendar-day {
+    min-height: 80px;
+    padding: 8px;
+    border: 2px solid var(--tt-gray-200);
+    border-radius: var(--tt-radius-sm);
+    background: var(--tt-gray-50);
+    transition: all var(--tt-transition);
+    cursor: pointer;
+    position: relative;
+}
+
+.tt-calendar-day:hover:not(.tt-calendar-day--off):not(.tt-calendar-day--past) {
+    border-color: var(--tt-primary);
+    box-shadow: var(--tt-shadow);
+    background: var(--tt-primary-light);
+}
+
+.tt-calendar-day--past {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.tt-calendar-day--today {
+    border-color: var(--tt-primary);
+    background: var(--tt-primary-light);
+}
+
+.tt-calendar-day--off {
+    opacity: .5;
+    background: var(--tt-gray-100);
+}
+
+.tt-calendar-day-number {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--tt-gray-700);
+    margin-bottom: 6px;
+}
+
+.tt-calendar-day--today .tt-calendar-day-number {
+    color: var(--tt-primary);
+    font-size: 16px;
+}
+
+.tt-calendar-day-badge {
+    margin-top: 8px;
+    padding: 4px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    background: var(--tt-success-light);
+    color: var(--tt-success);
+    border-radius: 4px;
+    text-align: center;
+    border: 1px solid var(--tt-success);
+}
+
+.tt-theme-dark .tt-calendar-day {
+    background: var(--tt-gray-100);
+    border-color: var(--tt-gray-200);
+}
+
+.tt-theme-dark .tt-calendar-day--today {
+    background: var(--tt-primary-light);
+    border-color: var(--tt-primary);
+}
+
+.tt-theme-dark .tt-schedule-detail__specializations {
+    background: rgba(255, 255, 255, .1);
+}
+
+.tt-theme-dark .tt-schedule-detail__specialization-item {
+    background: rgba(255, 255, 255, .15);
+}
+
+.tt-theme-dark .tt-schedule-detail__specialization-item:hover {
+    background: rgba(255, 255, 255, .25);
+}
+
+.tt-theme-dark .tt-schedule-detail__specialization-icon {
+    background: rgba(255, 255, 255, .2);
+}
+
+.tt-theme-dark .tt-calendar-grid {
+    background: var(--tt-gray-100);
+    border-color: var(--tt-gray-200);
+}
+
+.tt-theme-dark .tt-calendar-day {
+    background: var(--tt-gray-200);
+    border-color: var(--tt-gray-300);
+}
+
+.tt-theme-dark .tt-calendar-day--off {
+    background: var(--tt-gray-50);
+}
+
+/* ========== ПОПАП ВЫБОРА ВРЕМЕНИ ========== */
+.tt-time-popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tt-time-popup__overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+}
+
+.tt-time-popup__content {
+    position: relative;
+    background: #fff;
+    border-radius: var(--tt-radius);
+    box-shadow: var(--tt-shadow-lg);
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    z-index: 1;
+}
+
+.tt-time-popup__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 2px solid var(--tt-gray-200);
+}
+
+.tt-time-popup__title {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--tt-gray-900);
+}
+
+.tt-time-popup__close {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    font-size: 28px;
+    line-height: 1;
+    color: var(--tt-gray-500);
+    cursor: pointer;
+    border-radius: var(--tt-radius-sm);
+    transition: all var(--tt-transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tt-time-popup__close:hover {
+    background: var(--tt-gray-100);
+    color: var(--tt-gray-900);
+}
+
+.tt-time-popup__date {
+    padding: 16px 24px;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--tt-gray-700);
+    background: var(--tt-gray-50);
+    border-bottom: 2px solid var(--tt-gray-200);
+}
+
+.tt-time-popup__slots {
+    padding: 20px 24px;
+    overflow-y: auto;
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 12px;
+}
+
+.tt-time-popup__slot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    border: 2px solid var(--tt-gray-200);
+    border-radius: var(--tt-radius-sm);
+    background: var(--tt-gray-50);
+    cursor: pointer;
+    transition: all var(--tt-transition);
+    position: relative;
+}
+
+.tt-time-popup__slot input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.tt-time-popup__slot-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--tt-gray-800);
+}
+
+.tt-time-popup__slot:hover {
+    border-color: var(--tt-primary);
+    background: var(--tt-primary-light);
+}
+
+.tt-time-popup__slot input[type="radio"]:checked + .tt-time-popup__slot-label {
+    color: var(--tt-primary);
+    font-weight: 700;
+}
+
+/* Выделение выбранного слота */
+.tt-time-popup__slot:has(input[type="radio"]:checked) {
+    border-color: var(--tt-primary);
+    background: var(--tt-primary-light);
+}
+
+/* Fallback для браузеров без поддержки :has() - используем класс */
+.tt-time-popup__slot--selected {
+    border-color: var(--tt-primary);
+    background: var(--tt-primary-light);
+}
+
+.tt-time-popup__slot--selected .tt-time-popup__slot-label {
+    color: var(--tt-primary);
+    font-weight: 700;
+}
+
+.tt-time-popup__empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 40px;
+    color: var(--tt-gray-500);
+    font-size: 14px;
+}
+
+.tt-time-popup__footer {
+    display: flex;
+    gap: 12px;
+    padding: 20px 24px;
+    border-top: 2px solid var(--tt-gray-200);
+    justify-content: flex-end;
+}
+
+.tt-time-popup__cancel,
+.tt-time-popup__submit {
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: var(--tt-radius-sm);
+    border: none;
+    cursor: pointer;
+    transition: all var(--tt-transition);
+    font-family: var(--tt-font);
+}
+
+.tt-time-popup__cancel {
+    background: var(--tt-gray-100);
+    color: var(--tt-gray-700);
+}
+
+.tt-time-popup__cancel:hover {
+    background: var(--tt-gray-200);
+}
+
+.tt-time-popup__submit {
+    background: var(--tt-primary);
+    color: #fff;
+}
+
+.tt-time-popup__submit:hover {
+    background: var(--tt-primary-hover);
+}
+
+.tt-theme-dark .tt-time-popup__content {
+    background: var(--tt-gray-100);
+}
+
+.tt-theme-dark .tt-time-popup__title {
+    color: var(--tt-gray-900);
+}
+
+.tt-theme-dark .tt-time-popup__date {
+    background: var(--tt-gray-200);
+    color: var(--tt-gray-800);
+}
+
+.tt-theme-dark .tt-time-popup__slot {
+    background: var(--tt-gray-200);
+    border-color: var(--tt-gray-300);
+}
+
+.tt-theme-dark .tt-time-popup__slot:hover {
+    background: var(--tt-primary-light);
+}
+
+@media (max-width: 600px) {
+    .tt-time-popup__content {
+        width: 95%;
+        max-height: 90vh;
+    }
+
+    .tt-time-popup__slots {
+        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+        gap: 8px;
+    }
+}
+
 /* Responsive */
 @media (max-width: 900px) {
     .tt-schedule-list__grid {
         grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
         gap: 16px;
+    }
+
+    .tt-schedule-detail__main {
+        grid-template-columns: 1fr;
     }
 
     .tt-schedule-detail__days {
@@ -437,10 +1005,22 @@
         padding: 16px 8px;
     }
 
+    .tt-schedule-detail__main {
+        grid-template-columns: 1fr;
+        gap: 24px;
+    }
+
     .tt-schedule-detail__header {
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .tt-schedule-detail__photo-section {
+        order: 1;
+    }
+
+    .tt-schedule-detail__specializations {
+        order: 2;
     }
 
     .tt-schedule-detail__days {
@@ -454,4 +1034,57 @@
     .tt-schedule-detail__summary-number {
         font-size: 26px;
     }
+
+    .tt-calendar-grid {
+        grid-template-columns: repeat(7, 1fr);
+        gap: 4px;
+        padding: 8px;
+    }
+
+    .tt-calendar-day {
+        min-height: 80px;
+        padding: 4px;
+    }
+
 }
+
+/* ========== ТЕМНАЯ ТЕМА ========== */
+.tt-theme-dark {
+    --tt-primary: #6b7ef7;
+    --tt-primary-hover: #5a6de6;
+    --tt-primary-light: #2a2f4a;
+    --tt-success: #22c55e;
+    --tt-success-light: #1a3a26;
+    --tt-danger: #ef4444;
+    --tt-gray-50: #1a1a1a;
+    --tt-gray-100: #242424;
+    --tt-gray-200: #2d2d2d;
+    --tt-gray-300: #3a3a3a;
+    --tt-gray-400: #6b6b6b;
+    --tt-gray-500: #8a8a8a;
+    --tt-gray-600: #a0a0a0;
+    --tt-gray-700: #b5b5b5;
+    --tt-gray-800: #d0d0d0;
+    --tt-gray-900: #ffffff;
+    --tt-shadow: 0 1px 3px rgba(0,0,0,.3), 0 1px 2px rgba(0,0,0,.2);
+    --tt-shadow-md: 0 4px 6px -1px rgba(0,0,0,.4), 0 2px 4px -2px rgba(0,0,0,.3);
+    --tt-shadow-lg: 0 10px 15px -3px rgba(0,0,0,.5), 0 4px 6px -4px rgba(0,0,0,.4);
+}
+
+.tt-theme-dark .tt-schedule-list,
+.tt-theme-dark .tt-schedule-detail {
+    background: var(--tt-gray-50);
+    color: var(--tt-gray-900);
+}
+
+.tt-theme-dark .tt-schedule-list__item,
+.tt-theme-dark .tt-schedule-detail__day {
+    background: var(--tt-gray-100);
+    border-color: var(--tt-gray-200);
+}
+
+.tt-theme-dark .tt-schedule-list__item:hover {
+    background: var(--tt-primary-light);
+    border-color: var(--tt-primary);
+}
+

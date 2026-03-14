@@ -69,14 +69,14 @@ class testtask_schedule extends CModule
         $sql = "CREATE TABLE IF NOT EXISTS testtask_doctor_schedule (
             id INT(11) NOT NULL AUTO_INCREMENT,
             doctor_id INT(11) NOT NULL,
-            day_of_week TINYINT(1) NOT NULL COMMENT '1=Пн, 2=Вт, 3=Ср, 4=Чт, 5=Пт, 6=Сб, 7=Вс',
+            date DATE NOT NULL COMMENT 'Дата расписания',
             is_working TINYINT(1) NOT NULL DEFAULT 1,
             time_start VARCHAR(5) DEFAULT '09:00',
             time_end VARCHAR(5) DEFAULT '18:00',
             break_start VARCHAR(5) DEFAULT NULL,
             break_end VARCHAR(5) DEFAULT NULL,
             PRIMARY KEY (id),
-            UNIQUE KEY uk_doctor_day (doctor_id, day_of_week)
+            UNIQUE KEY uk_doctor_date (doctor_id, date)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
 
         $connection->queryExecute($sql);

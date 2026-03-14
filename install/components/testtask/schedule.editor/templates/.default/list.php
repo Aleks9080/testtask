@@ -2,6 +2,7 @@
 
 if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) die();
 
+
 /**
  * Шаблон списка врачей
  *
@@ -11,6 +12,8 @@ if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) die();
  */
 
 $doctors = $arResult['DOCTORS'];
+$specializations = $arResult['SPECIALIZATIONS'] ?? [];
+$filterSpec = (int)($arResult['FILTER_SPEC'] ?? 0);
 $sefFolder = $arResult['SEF_FOLDER'];
 $urlTemplates = $arResult['SEF_URL_TEMPLATES'];
 $detailUrl = $urlTemplates['detail'] ?? '#ELEMENT_ID#/';
@@ -19,8 +22,27 @@ $detailUrl = $urlTemplates['detail'] ?? '#ELEMENT_ID#/';
 <div class="tt-schedule-list">
     <div class="tt-schedule-list__header">
         <h1 class="tt-schedule-list__title">Врачи</h1>
-        <p class="tt-schedule-list__subtitle">Выберите врача, чтобы посмотреть его расписание</p>
+        <p class="tt-schedule-list__subtitle">Выберите врача для просмотра расписания</p>
     </div>
+
+    <?php if (!empty($specializations)): ?>
+    <div class="tt-schedule-list__filter">
+        <label class="tt-schedule-list__filter-label">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+            </svg>
+            Фильтр по специальности
+        </label>
+        <select class="tt-schedule-list__filter-select" id="tt-filter-spec" onchange="TtSchedule.filterBySpecialization(this.value)">
+            <option value="0" <?= $filterSpec === 0 ? 'selected' : '' ?>>Все специальности</option>
+            <?php foreach ($specializations as $spec): ?>
+                <option value="<?= $spec['ID'] ?>" <?= $filterSpec === $spec['ID'] ? 'selected' : '' ?>>
+                    <?= htmlspecialcharsbx($spec['NAME']) ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+    </div>
+    <?php endif; ?>
 
     <?php if (empty($doctors)): ?>
         <div class="tt-schedule-list__empty">
@@ -28,7 +50,7 @@ $detailUrl = $urlTemplates['detail'] ?? '#ELEMENT_ID#/';
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
                 <circle cx="12" cy="7" r="4"/>
             </svg>
-            <p>В инфоблоке нет активных врачей</p>
+            <p>Врачи не найдены</p>
         </div>
     <?php else: ?>
         <div class="tt-schedule-list__grid">
@@ -61,3 +83,5 @@ $detailUrl = $urlTemplates['detail'] ?? '#ELEMENT_ID#/';
         </div>
     <?php endif; ?>
 </div>
+
+<script src="<?= $this->GetFolder() ?>/script.js"></script>

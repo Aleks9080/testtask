@@ -57,39 +57,46 @@ try {
 
     // Валидация времени
     $timePattern = '/^([01]\d|2[0-3]):[0-5]\d$/';
-    foreach ($days as $dayNum => $dayData) {
-        $dayNum = (int)$dayNum;
-        if ($dayNum < 1 || $dayNum > 7) {
-            throw new \Exception("Некорректный номер дня: $dayNum");
+    $datePattern = '/^\d{4}-\d{2}-\d{2}$/';
+    foreach ($days as $dayKey => $dayData) {
+        // Проверяем, это дата (YYYY-MM-DD) или день недели (1-7)
+        $isDate = preg_match($datePattern, $dayKey);
+        if (!$isDate) {
+            $dayNum = (int)$dayKey;
+            if ($dayNum < 1 || $dayNum > 7) {
+                throw new \Exception("Некорректный номер дня: $dayKey");
+            }
         }
 
         if (!empty($dayData['is_working'])) {
+            $dayLabel = $isDate ? $dayKey : $dayNum;
+            
             // Проверяем формат времени
             if (!preg_match($timePattern, $dayData['time_start'])) {
-                throw new \Exception("Некорректное время начала для дня $dayNum");
+                throw new \Exception("Некорректное время начала для дня $dayLabel");
             }
             if (!preg_match($timePattern, $dayData['time_end'])) {
-                throw new \Exception("Некорректное время окончания для дня $dayNum");
+                throw new \Exception("Некорректное время окончания для дня $dayLabel");
             }
 
             // Проверяем, что время окончания позже начала
             if ($dayData['time_start'] >= $dayData['time_end']) {
-                throw new \Exception("Время окончания должно быть позже начала (день $dayNum)");
+                throw new \Exception("Время окончания должно быть позже начала (день $dayLabel)");
             }
 
             // Проверяем перерыв, если указан
             if (!empty($dayData['break_start']) && !empty($dayData['break_end'])) {
                 if (!preg_match($timePattern, $dayData['break_start'])) {
-                    throw new \Exception("Некорректное время начала перерыва (день $dayNum)");
+                    throw new \Exception("Некорректное время начала перерыва (день $dayLabel)");
                 }
                 if (!preg_match($timePattern, $dayData['break_end'])) {
-                    throw new \Exception("Некорректное время окончания перерыва (день $dayNum)");
+                    throw new \Exception("Некорректное время окончания перерыва (день $dayLabel)");
                 }
                 if ($dayData['break_start'] >= $dayData['break_end']) {
-                    throw new \Exception("Время окончания перерыва должно быть позже начала (день $dayNum)");
+                    throw new \Exception("Время окончания перерыва должно быть позже начала (день $dayLabel)");
                 }
                 if ($dayData['break_start'] < $dayData['time_start'] || $dayData['break_end'] > $dayData['time_end']) {
-                    throw new \Exception("Перерыв должен быть внутри рабочего времени (день $dayNum)");
+                    throw new \Exception("Перерыв должен быть внутри рабочего времени (день $dayLabel)");
                 }
             }
         }

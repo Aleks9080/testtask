@@ -26,6 +26,19 @@ $arComponentParameters = [
             'VALUES' => $arIblocks,
             'REFRESH' => 'Y',
         ],
+        'SPECIALIZATIONS_IBLOCK_ID' => [
+            'PARENT' => 'SETTINGS',
+            'NAME' => 'Инфоблок со специальностями/кабинетами (опционально)',
+            'TYPE' => 'LIST',
+            'VALUES' => [0 => 'Не использовать'] + $arIblocks,
+            'DEFAULT' => 0,
+        ],
+        'SPECIALIZATION_PROPERTY' => [
+            'PARENT' => 'SETTINGS',
+            'NAME' => 'Код свойства связи (должен быть DOCTOR_ID)',
+            'TYPE' => 'STRING',
+            'DEFAULT' => 'DOCTOR_ID',
+        ],
         'SEF_MODE' => [
             'PARENT' => 'SEF',
             'NAME' => 'Включить поддержку ЧПУ',

@@ -6,6 +6,7 @@ use Bitrix\Main\ORM\Data\DataManager;
 use Bitrix\Main\ORM\Fields\IntegerField;
 use Bitrix\Main\ORM\Fields\StringField;
 use Bitrix\Main\ORM\Fields\BooleanField;
+use Bitrix\Main\ORM\Fields\DateField;
 
 /**
  * ORM-сущность для таблицы testtask_doctor_schedule
@@ -44,19 +45,9 @@ class ScheduleTable extends DataManager
                 'required' => true,
                 'title' => 'ID врача',
             ]),
-            new IntegerField('day_of_week', [
+            new DateField('date', [
                 'required' => true,
-                'title' => 'День недели (1-7)',
-                'validation' => function () {
-                    return [
-                        function ($value) {
-                            if ($value < 1 || $value > 7) {
-                                return 'День недели должен быть от 1 до 7';
-                            }
-                            return true;
-                        }
-                    ];
-                },
+                'title' => 'Дата расписания',
             ]),
             new BooleanField('is_working', [
                 'values' => [0, 1],
@@ -87,21 +78,39 @@ class ScheduleTable extends DataManager
     }
 
     /**
-     * Получить расписание врача на всю неделю
+     * Получить расписание врача по датам
      *
      * @param int $doctorId ID врача
-     * @return array Массив расписания по дням
+     * @param \Bitrix\Main\Type\Date|null $startDate Начальная дата
+     * @param \Bitrix\Main\Type\Date|null $endDate Конечная дата
+     * @return array Массив расписания по датам (ключ - дата YYYY-MM-DD) или по дням недели (если даты не указаны)
      */
-    public static function getScheduleByDoctor(int $doctorId): array
+    public static function getScheduleByDoctor(int $doctorId, \Bitrix\Main\Type\Date $startDate = null, \Bitrix\Main\Type\Date $endDate = null): array
     {
+        $filter = ['=doctor_id' => $doctorId];
+        
+        if ($startDate) {
+            $filter['>=date'] = $startDate;
+        }
+        if ($endDate) {
+            $filter['<=date'] = $endDate;
+        }
+        
         $result = self::getList([
-            'filter' => ['=doctor_id' => $doctorId],
-            'order' => ['day_of_week' => 'ASC'],
+            'filter' => $filter,
+            'order' => ['date' => 'ASC'],
         ]);
 
         $schedule = [];
         while ($row = $result->fetch()) {
-            $schedule[$row['day_of_week']] = $row;
+            if (isset($row['date'])) {
+                // Если есть поле date, используем его
+                $dateStr = $row['date']->format('Y-m-d');
+                $schedule[$dateStr] = $row;
+            } else {
+                // Иначе используем day_of_week (для обратной совместимости)
+                $schedule[$row['day_of_week']] = $row;
+            }
         }
 
         return $schedule;
@@ -111,23 +120,29 @@ class ScheduleTable extends DataManager
      * Сохранить расписание врача
      *
      * @param int $doctorId ID врача
-     * @param array $days Массив данных по дням
+     * @param array $days Массив данных по датам (ключ - дата YYYY-MM-DD)
      * @return bool
      */
     public static function saveSchedule(int $doctorId, array $days): bool
     {
-        foreach ($days as $dayOfWeek => $dayData) {
+        foreach ($days as $dateStr => $dayData) {
+            try {
+                $date = new \Bitrix\Main\Type\Date($dateStr, 'Y-m-d');
+            } catch (\Exception $e) {
+                continue; // Пропускаем некорректные даты
+            }
+            
             $existing = self::getList([
                 'filter' => [
                     '=doctor_id' => $doctorId,
-                    '=day_of_week' => (int)$dayOfWeek,
+                    '=date' => $date,
                 ],
                 'select' => ['id'],
             ])->fetch();
 
             $fields = [
                 'doctor_id' => $doctorId,
-                'day_of_week' => (int)$dayOfWeek,
+                'date' => $date,
                 'is_working' => (int)($dayData['is_working'] ?? 0),
                 'time_start' => $dayData['time_start'] ?? '09:00',
                 'time_end' => $dayData['time_end'] ?? '18:00',

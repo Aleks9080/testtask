@@ -10,11 +10,14 @@
 var TtSchedule = (function () {
     'use strict';
 
+    var currentWeek = 1;
+    var totalWeeks = 5;
+
     /**
      * Переключение дня (рабочий / выходной)
      */
-    function toggleDay(dayNum, isWorking) {
-        var card = document.querySelector('.tt-schedule-day[data-day="' + dayNum + '"]');
+    function toggleDay(date, isWorking) {
+        var card = document.querySelector('.tt-schedule-day[data-date="' + date + '"]');
         if (!card) return;
 
         var body = card.querySelector('.tt-schedule-day__body');
@@ -37,19 +40,71 @@ var TtSchedule = (function () {
     }
 
     /**
+     * Показать неделю
+     */
+    function showWeek(direction) {
+        currentWeek += direction;
+        if (currentWeek < 1) currentWeek = 1;
+        if (currentWeek > totalWeeks) currentWeek = totalWeeks;
+
+        // Скрываем все недели
+        var weeks = document.querySelectorAll('.tt-schedule-week');
+        weeks.forEach(function(week) {
+            week.style.display = 'none';
+        });
+
+        // Показываем текущую неделю
+        var currentWeekEl = document.querySelector('.tt-schedule-week[data-week="' + currentWeek + '"]');
+        if (currentWeekEl) {
+            currentWeekEl.style.display = '';
+        }
+
+        // Обновляем кнопки навигации
+        var prevBtn = document.getElementById('tt-week-prev');
+        var nextBtn = document.getElementById('tt-week-next');
+        var weekInfo = document.getElementById('tt-current-week');
+        var weekDates = document.getElementById('tt-current-week-dates');
+
+        if (prevBtn) prevBtn.disabled = (currentWeek === 1);
+        if (nextBtn) nextBtn.disabled = (currentWeek === totalWeeks);
+        
+        if (weekInfo) {
+            // Получаем текст из первого заголовка недели
+            var weekTitle = document.querySelector('.tt-schedule-week[data-week="' + currentWeek + '"] .tt-schedule-week__title');
+            if (weekTitle) {
+                weekInfo.textContent = weekTitle.textContent;
+            } else {
+                weekInfo.textContent = 'Неделя ' + currentWeek;
+            }
+        }
+        
+        if (weekDates) {
+            // Получаем диапазон дат из заголовка недели
+            var weekDatesEl = document.querySelector('.tt-schedule-week[data-week="' + currentWeek + '"] .tt-schedule-week__dates');
+            if (weekDatesEl) {
+                weekDates.textContent = weekDatesEl.textContent.trim();
+            } else {
+                weekDates.textContent = '';
+            }
+        }
+
+        recalcAll();
+    }
+
+    /**
      * Подсчёт часов для конкретного дня
      */
-    function calcDayHours(dayNum) {
-        var card = document.querySelector('.tt-schedule-day[data-day="' + dayNum + '"]');
+    function calcDayHours(date) {
+        var card = document.querySelector('.tt-schedule-day[data-date="' + date + '"]');
         if (!card) return 0;
 
-        var checkbox = card.querySelector('input[name="days[' + dayNum + '][is_working]"]');
+        var checkbox = card.querySelector('input[name="days[' + date + '][is_working]"]');
         if (!checkbox || !checkbox.checked) return 0;
 
-        var startInput = card.querySelector('input[name="days[' + dayNum + '][time_start]"]');
-        var endInput = card.querySelector('input[name="days[' + dayNum + '][time_end]"]');
-        var breakStartInput = card.querySelector('input[name="days[' + dayNum + '][break_start]"]');
-        var breakEndInput = card.querySelector('input[name="days[' + dayNum + '][break_end]"]');
+        var startInput = card.querySelector('input[name="days[' + date + '][time_start]"]');
+        var endInput = card.querySelector('input[name="days[' + date + '][time_end]"]');
+        var breakStartInput = card.querySelector('input[name="days[' + date + '][break_start]"]');
+        var breakEndInput = card.querySelector('input[name="days[' + date + '][break_end]"]');
 
         var start = timeToMinutes(startInput ? startInput.value : '');
         var end = timeToMinutes(endInput ? endInput.value : '');
@@ -88,9 +143,14 @@ var TtSchedule = (function () {
         var totalHours = 0;
         var workingDays = 0;
 
-        for (var day = 1; day <= 7; day++) {
-            var hours = calcDayHours(day);
-            var hoursEl = document.getElementById('hours-' + day);
+        // Пересчитываем только видимые дни (текущая неделя)
+        var visibleDays = document.querySelectorAll('.tt-schedule-week[style*="display:"] .tt-schedule-day');
+        visibleDays.forEach(function(dayCard) {
+            var date = dayCard.getAttribute('data-date');
+            if (!date) return;
+
+            var hours = calcDayHours(date);
+            var hoursEl = dayCard.querySelector('.tt-schedule-day__hours-value');
             if (hoursEl) {
                 hoursEl.textContent = hours > 0 ? hours.toFixed(1) : '—';
             }
@@ -98,13 +158,27 @@ var TtSchedule = (function () {
                 workingDays++;
                 totalHours += hours;
             }
-        }
+        });
+
+        // Пересчитываем все дни для общего итога
+        var allDays = document.querySelectorAll('.tt-schedule-day');
+        var totalAllHours = 0;
+        var totalAllDays = 0;
+        allDays.forEach(function(dayCard) {
+            var date = dayCard.getAttribute('data-date');
+            if (!date) return;
+            var hours = calcDayHours(date);
+            if (hours > 0) {
+                totalAllDays++;
+                totalAllHours += hours;
+            }
+        });
 
         var totalDaysEl = document.getElementById('total-working-days');
         var totalHoursEl = document.getElementById('total-hours');
 
-        if (totalDaysEl) totalDaysEl.textContent = workingDays;
-        if (totalHoursEl) totalHoursEl.textContent = totalHours.toFixed(1);
+        if (totalDaysEl) totalDaysEl.textContent = totalAllDays;
+        if (totalHoursEl) totalHoursEl.textContent = totalAllHours.toFixed(1);
     }
 
     /**
@@ -156,16 +230,23 @@ var TtSchedule = (function () {
         var data = presets[preset];
         if (!data) return;
 
-        for (var day = 1; day <= 7; day++) {
-            var d = data[day];
-            var card = document.querySelector('.tt-schedule-day[data-day="' + day + '"]');
-            if (!card) continue;
+        // Применяем шаблон ко всем дням календаря на основе дня недели
+        var allDays = document.querySelectorAll('.tt-schedule-day');
+        allDays.forEach(function(card) {
+            var dayOfWeek = parseInt(card.getAttribute('data-day-of-week'), 10);
+            if (!dayOfWeek || dayOfWeek < 1 || dayOfWeek > 7) return;
 
-            var checkbox = card.querySelector('input[name="days[' + day + '][is_working]"]');
-            var startInput = card.querySelector('input[name="days[' + day + '][time_start]"]');
-            var endInput = card.querySelector('input[name="days[' + day + '][time_end]"]');
-            var bStartInput = card.querySelector('input[name="days[' + day + '][break_start]"]');
-            var bEndInput = card.querySelector('input[name="days[' + day + '][break_end]"]');
+            var d = data[dayOfWeek];
+            if (!d) return;
+
+            var date = card.getAttribute('data-date');
+            if (!date) return;
+
+            var checkbox = card.querySelector('input[name="days[' + date + '][is_working]"]');
+            var startInput = card.querySelector('input[name="days[' + date + '][time_start]"]');
+            var endInput = card.querySelector('input[name="days[' + date + '][time_end]"]');
+            var bStartInput = card.querySelector('input[name="days[' + date + '][break_start]"]');
+            var bEndInput = card.querySelector('input[name="days[' + date + '][break_end]"]');
 
             if (checkbox) checkbox.checked = d.working;
             if (startInput) startInput.value = d.start;
@@ -173,35 +254,89 @@ var TtSchedule = (function () {
             if (bStartInput) bStartInput.value = d.bStart;
             if (bEndInput) bEndInput.value = d.bEnd;
 
-            toggleDay(day, d.working);
-        }
+            toggleDay(date, d.working);
+        });
 
         recalcAll();
+    }
+
+    /**
+     * Получить текущие параметры из URL
+     */
+    function getUrlParams() {
+        var params = {};
+        var urlParams = new URLSearchParams(window.location.search);
+        params.iblock_id = urlParams.get('iblock_id') || '0';
+        params.spec_iblock_id = urlParams.get('spec_iblock_id') || '0';
+        params.spec_property = urlParams.get('spec_property') || '';
+        params.doctor_id = urlParams.get('doctor_id') || '0';
+        return params;
+    }
+
+    /**
+     * Построить URL с параметрами
+     */
+    function buildUrl(params) {
+        var url = '/bitrix/admin/doctor_schedule.php?';
+        var parts = [];
+        
+        // Добавляем sessid
+        var sessidEl = document.getElementById('tt-sessid');
+        if (sessidEl) {
+            parts.push('sessid=' + encodeURIComponent(sessidEl.value));
+        }
+        
+        if (params.iblock_id && params.iblock_id !== '0') {
+            parts.push('iblock_id=' + params.iblock_id);
+        }
+        if (params.spec_iblock_id && params.spec_iblock_id !== '0') {
+            parts.push('spec_iblock_id=' + params.spec_iblock_id);
+        }
+        if (params.spec_property) {
+            parts.push('spec_property=' + encodeURIComponent(params.spec_property));
+        }
+        if (params.doctor_id && params.doctor_id !== '0') {
+            parts.push('doctor_id=' + params.doctor_id);
+        }
+        return url + parts.join('&');
     }
 
     /**
      * Смена инфоблока — перезагрузка страницы с новым iblock_id
      */
     function changeIblock(iblockId) {
-        if (!iblockId || iblockId === '0') {
-            window.location.href = '/bitrix/admin/doctor_schedule.php';
-        } else {
-            window.location.href = '/bitrix/admin/doctor_schedule.php?iblock_id=' + iblockId;
-        }
+        var params = getUrlParams();
+        params.iblock_id = iblockId;
+        params.doctor_id = '0'; // Сбрасываем выбор врача
+        window.location.href = buildUrl(params);
     }
 
     /**
-     * Смена врача — переход на страницу с текущим iblock_id и новым doctor_id
+     * Смена инфоблока со специальностями
+     */
+    function changeSpecIblock(specIblockId) {
+        var params = getUrlParams();
+        params.spec_iblock_id = specIblockId;
+        params.spec_property = ''; // Сбрасываем свойство
+        window.location.href = buildUrl(params);
+    }
+
+    /**
+     * Смена свойства связи со специальностями
+     */
+    function changeSpecProperty(specProperty) {
+        var params = getUrlParams();
+        params.spec_property = specProperty;
+        window.location.href = buildUrl(params);
+    }
+
+    /**
+     * Смена врача — переход на страницу с текущими параметрами и новым doctor_id
      */
     function changeDoctor(doctorId) {
-        var iblockSelect = document.getElementById('tt-iblock-id');
-        var iblockId = iblockSelect ? iblockSelect.value : '0';
-
-        if (!doctorId || doctorId === '0') {
-            window.location.href = '/bitrix/admin/doctor_schedule.php?iblock_id=' + iblockId;
-        } else {
-            window.location.href = '/bitrix/admin/doctor_schedule.php?iblock_id=' + iblockId + '&doctor_id=' + doctorId;
-        }
+        var params = getUrlParams();
+        params.doctor_id = doctorId;
+        window.location.href = buildUrl(params);
     }
 
     /**
@@ -243,12 +378,20 @@ var TtSchedule = (function () {
         var formData = new FormData(form);
 
         // Для выходных дней нужно явно отправить is_working = 0
-        for (var day = 1; day <= 7; day++) {
-            var checkbox = form.querySelector('input[name="days[' + day + '][is_working]"]');
-            if (checkbox && !checkbox.checked) {
-                formData.set('days[' + day + '][is_working]', '0');
+        // Ищем все дни в форме (по датам)
+        var dayInputs = form.querySelectorAll('input[name^="days["]');
+        dayInputs.forEach(function(input) {
+            var name = input.name;
+            // Извлекаем дату из name="days[YYYY-MM-DD][...]"
+            var match = name.match(/days\[([^\]]+)\]/);
+            if (match && match[1]) {
+                var dateStr = match[1];
+                var checkbox = form.querySelector('input[name="days[' + dateStr + '][is_working]"]');
+                if (checkbox && !checkbox.checked) {
+                    formData.set('days[' + dateStr + '][is_working]', '0');
+                }
             }
-        }
+        });
 
         var xhr = new XMLHttpRequest();
         xhr.open('POST', '/bitrix/admin/doctor_schedule_ajax.php', true);
@@ -258,16 +401,19 @@ var TtSchedule = (function () {
 
             if (btn) {
                 btn.classList.remove('tt-schedule-save-btn--loading');
-                btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Сохранить расписание';
+                var saveText = btn.getAttribute('data-save-text') || 'Сохранить расписание';
+                btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> ' + saveText;
             }
 
             if (xhr.status === 200) {
                 try {
                     var response = JSON.parse(xhr.responseText);
                     if (response.success) {
-                        showToast('✓ ' + response.message, 'success');
+                        var message = response.message || 'Расписание успешно сохранено';
+                        showToast('✓ ' + message, 'success');
                     } else {
-                        showToast('✗ ' + response.message, 'error');
+                        var errorMsg = response.message || 'Ошибка при сохранении расписания';
+                        showToast('✗ ' + errorMsg, 'error');
                     }
                 } catch (ex) {
                     showToast('✗ Ошибка обработки ответа сервера', 'error');
@@ -284,6 +430,8 @@ var TtSchedule = (function () {
      * Инициализация при загрузке страницы
      */
     function init() {
+        initWeekNav();
+        
         // Подписка на отправку формы
         var form = document.getElementById('tt-schedule-form');
         if (form) {
@@ -308,13 +456,49 @@ var TtSchedule = (function () {
         init();
     }
 
+    /**
+     * Инициализация навигации по неделям
+     */
+    function initWeekNav() {
+        var weeks = document.querySelectorAll('.tt-schedule-week');
+        totalWeeks = weeks.length;
+        
+        var prevBtn = document.getElementById('tt-week-prev');
+        var nextBtn = document.getElementById('tt-week-next');
+        var weekInfo = document.getElementById('tt-current-week');
+        var weekDates = document.getElementById('tt-current-week-dates');
+
+        if (prevBtn) prevBtn.disabled = true;
+        if (nextBtn) nextBtn.disabled = (totalWeeks <= 1);
+        
+        // Инициализируем информацию о первой неделе
+        if (weekInfo) {
+            var firstWeekTitle = document.querySelector('.tt-schedule-week[data-week="1"] .tt-schedule-week__title');
+            if (firstWeekTitle) {
+                weekInfo.textContent = firstWeekTitle.textContent;
+            } else {
+                weekInfo.textContent = 'Неделя 1';
+            }
+        }
+        
+        if (weekDates) {
+            var firstWeekDates = document.querySelector('.tt-schedule-week[data-week="1"] .tt-schedule-week__dates');
+            if (firstWeekDates) {
+                weekDates.textContent = firstWeekDates.textContent.trim();
+            }
+        }
+    }
+
     // Публичный API
     return {
         toggleDay: toggleDay,
         applyPreset: applyPreset,
         changeIblock: changeIblock,
+        changeSpecIblock: changeSpecIblock,
+        changeSpecProperty: changeSpecProperty,
         changeDoctor: changeDoctor,
-        recalcAll: recalcAll
+        recalcAll: recalcAll,
+        showWeek: showWeek
     };
 
 })();

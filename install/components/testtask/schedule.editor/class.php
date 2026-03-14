@@ -5,6 +5,7 @@ if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) die();
 use Bitrix\Main\Loader;
 use Bitrix\Main\Application;
 use Bitrix\Main\Web\Json;
+use Bitrix\Main\Config\Option;
 use Testtask\Schedule\ScheduleTable;
 
 /**
@@ -22,10 +23,18 @@ class TtScheduleEditorComponent extends CBitrixComponent
     protected int $doctorId = 0;
     protected string $mode = 'list';
 
+    protected int $specIblockId = 0;
+    protected string $specProperty = 'DOCTOR_ID';
+
     public function onPrepareComponentParams($arParams): array
     {
         $arParams['IBLOCK_ID'] = (int)($arParams['IBLOCK_ID'] ?? 0);
         $arParams['ELEMENT_ID'] = (int)($arParams['ELEMENT_ID'] ?? 0);
+        
+        // Загружаем настройки из Option, если не указаны в параметрах
+        $arParams['SPECIALIZATIONS_IBLOCK_ID'] = (int)($arParams['SPECIALIZATIONS_IBLOCK_ID'] ?? Option::get('testtask.schedule', 'spec_iblock_id', 0));
+        $arParams['SPECIALIZATION_PROPERTY'] = $arParams['SPECIALIZATION_PROPERTY'] ?? Option::get('testtask.schedule', 'spec_property', 'DOCTOR_ID');
+        
         $arParams['SEF_MODE'] = ($arParams['SEF_MODE'] ?? 'N') === 'Y';
         $arParams['SEF_FOLDER'] = $arParams['SEF_FOLDER'] ?? '/';
         $arParams['SEF_URL_TEMPLATES'] = $arParams['SEF_URL_TEMPLATES'] ?? [];
@@ -49,8 +58,15 @@ class TtScheduleEditorComponent extends CBitrixComponent
         }
 
         $this->iblockId = $this->arParams['IBLOCK_ID'];
+        $this->specIblockId = $this->arParams['SPECIALIZATIONS_IBLOCK_ID'];
+        $this->specProperty = $this->arParams['SPECIALIZATION_PROPERTY'];
+        
+        // Получаем смещение недели из GET-параметра
+        $request = Application::getInstance()->getContext()->getRequest();
+        $this->arParams['WEEK_OFFSET'] = (int)$request->get('week_offset');
+        
         if ($this->iblockId <= 0) {
-            ShowError('Не указан инфоблок с врачами');
+            ShowError('Не указан ID инфоблока');
             return;
         }
 
@@ -134,8 +150,13 @@ class TtScheduleEditorComponent extends CBitrixComponent
      */
     protected function executeList(): void
     {
+        $request = Application::getInstance()->getContext()->getRequest();
+        $filterSpec = (int)$request->get('filter_spec');
+
         $this->arResult['IBLOCK_ID'] = $this->iblockId;
-        $this->arResult['DOCTORS'] = $this->getDoctorsList();
+        $this->arResult['DOCTORS'] = $this->getDoctorsList($filterSpec);
+        $this->arResult['SPECIALIZATIONS'] = $this->getAllSpecializations();
+        $this->arResult['FILTER_SPEC'] = $filterSpec;
         $this->arResult['SEF_FOLDER'] = $this->arParams['SEF_FOLDER'];
         $this->arResult['SEF_URL_TEMPLATES'] = $this->arParams['SEF_URL_TEMPLATES'];
 
@@ -179,11 +200,70 @@ class TtScheduleEditorComponent extends CBitrixComponent
             $element['DETAIL_PICTURE'] = \CFile::GetPath($element['DETAIL_PICTURE']);
         }
 
-        // Получаем расписание
-        $schedule = ScheduleTable::getScheduleByDoctor($this->doctorId);
+        // Получаем расписание на текущую неделю (или выбранную через параметр)
+        $weekOffset = (int)($this->arParams['WEEK_OFFSET'] ?? 0);
+        
+        $today = new \DateTime();
+        $today->setTime(0, 0, 0);
+        
+        // Находим начало текущей недели (понедельник)
+        $dayOfWeek = (int)$today->format('N'); // 1=Пн, 7=Вс
+        $weekStart = clone $today;
+        if ($dayOfWeek > 1) {
+            $weekStart->modify('-' . ($dayOfWeek - 1) . ' days');
+        }
+        
+        // Применяем смещение недели
+        if ($weekOffset != 0) {
+            $weekStart->modify($weekOffset . ' weeks');
+        }
+        
+        // Генерируем даты недели (7 дней)
+        $weekDays = [];
+        $weekSchedule = [];
+        for ($i = 0; $i < 7; $i++) {
+            $date = clone $weekStart;
+            $date->modify('+' . $i . ' days');
+            $dateStr = $date->format('Y-m-d');
+            $dayOfWeekNum = (int)$date->format('N'); // 1=Пн, 7=Вс
+            
+            $weekDays[] = [
+                'date' => $dateStr,
+                'day' => (int)$date->format('d'),
+                'month' => (int)$date->format('m'),
+                'year' => (int)$date->format('Y'),
+                'day_of_week' => $dayOfWeekNum,
+                'day_name' => ['', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'][$dayOfWeekNum],
+                'day_short' => ['', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'][$dayOfWeekNum],
+            ];
+        }
+        
+        // Загружаем расписание для этой недели
+        $startDateObj = new \Bitrix\Main\Type\Date($weekStart->format('Y-m-d'), 'Y-m-d');
+        $endDate = clone $weekStart;
+        $endDate->modify('+6 days');
+        $endDateObj = new \Bitrix\Main\Type\Date($endDate->format('Y-m-d'), 'Y-m-d');
+        
+        $scheduleByDates = ScheduleTable::getScheduleByDoctor($this->doctorId, $startDateObj, $endDateObj);
+        
+        // Формируем расписание для недели
+        foreach ($weekDays as $dayInfo) {
+            $dateStr = $dayInfo['date'];
+            if (isset($scheduleByDates[$dateStr])) {
+                $weekSchedule[$dayInfo['day_of_week']] = $scheduleByDates[$dateStr];
+            } else {
+                // Если для конкретной даты нет расписания, используем null
+                $weekSchedule[$dayInfo['day_of_week']] = null;
+            }
+        }
+        
+        $schedule = $weekSchedule;
 
         $this->arResult['ELEMENT'] = $element;
         $this->arResult['SCHEDULE'] = $schedule;
+        $this->arResult['WEEK_DAYS'] = $weekDays;
+        $this->arResult['WEEK_START'] = $weekStart->format('Y-m-d');
+        $this->arResult['WEEK_OFFSET'] = $weekOffset;
         $this->arResult['DAYS_OF_WEEK'] = [
             1 => ['NAME' => 'Понедельник', 'SHORT' => 'Пн'],
             2 => ['NAME' => 'Вторник',     'SHORT' => 'Вт'],
@@ -201,11 +281,12 @@ class TtScheduleEditorComponent extends CBitrixComponent
             'break_end'   => '14:00',
         ];
         $this->arResult['SEF_FOLDER'] = $this->arParams['SEF_FOLDER'];
+        $this->arResult['SPECIALIZATIONS'] = $this->getDoctorSpecializations($this->doctorId);
 
         // Установка заголовка
         if ($this->arParams['SET_TITLE'] === 'Y') {
             global $APPLICATION;
-            $APPLICATION->SetTitle('Расписание: ' . $element['NAME']);
+            $APPLICATION->SetTitle($element['NAME'] . ' — Расписание');
         }
 
         $this->includeComponentTemplate('detail');
@@ -214,12 +295,43 @@ class TtScheduleEditorComponent extends CBitrixComponent
     /**
      * Список активных элементов (врачей) из инфоблока
      */
-    protected function getDoctorsList(): array
+    protected function getDoctorsList(int $filterSpec = 0): array
     {
+        $filter = ['IBLOCK_ID' => $this->iblockId, 'ACTIVE' => 'Y'];
+        
+        // Фильтрация по специальности
+        if ($filterSpec > 0 && $this->specIblockId > 0) {
+            // Находим ID врачей, у которых есть эта специальность
+            $doctorIds = [];
+            $rsSpec = \CIBlockElement::GetList(
+                [],
+                [
+                    'IBLOCK_ID' => $this->specIblockId,
+                    'ID' => $filterSpec,
+                    'ACTIVE' => 'Y',
+                ],
+                false, false,
+                ['ID', 'PROPERTY_' . $this->specProperty]
+            );
+            while ($spec = $rsSpec->Fetch()) {
+                $propValue = $spec['PROPERTY_' . $this->specProperty . '_VALUE'];
+                if (is_array($propValue)) {
+                    $doctorIds = array_merge($doctorIds, $propValue);
+                } else {
+                    $doctorIds[] = $propValue;
+                }
+            }
+            $doctorIds = array_unique(array_filter($doctorIds));
+            if (empty($doctorIds)) {
+                return []; // Нет врачей с такой специальностью
+            }
+            $filter['ID'] = $doctorIds;
+        }
+
         $doctors = [];
         $rs = \CIBlockElement::GetList(
             ['SORT' => 'ASC', 'NAME' => 'ASC'],
-            ['IBLOCK_ID' => $this->iblockId, 'ACTIVE' => 'Y'],
+            $filter,
             false, false,
             ['ID', 'NAME', 'PREVIEW_PICTURE', 'CODE']
         );
@@ -232,5 +344,66 @@ class TtScheduleEditorComponent extends CBitrixComponent
             ];
         }
         return $doctors;
+    }
+
+    /**
+     * Получить специальности и кабинеты врача
+     */
+    protected function getDoctorSpecializations(int $doctorId): array
+    {
+        if ($this->specIblockId <= 0) {
+            return [];
+        }
+
+        $specializations = [];
+        $rs = \CIBlockElement::GetList(
+            ['SORT' => 'ASC', 'NAME' => 'ASC'],
+            [
+                'IBLOCK_ID' => $this->specIblockId,
+                'ACTIVE' => 'Y',
+                'PROPERTY_' . $this->specProperty => $doctorId,
+            ],
+            false, false,
+            ['ID', 'NAME', 'CODE', 'PREVIEW_PICTURE']
+        );
+
+        while ($el = $rs->Fetch()) {
+            $specializations[] = [
+                'ID' => (int)$el['ID'],
+                'NAME' => $el['NAME'],
+                'CODE' => $el['CODE'] ?: $el['ID'],
+                'PICTURE' => $el['PREVIEW_PICTURE'] ? \CFile::GetPath($el['PREVIEW_PICTURE']) : '',
+            ];
+        }
+
+        return $specializations;
+    }
+
+    /**
+     * Получить все доступные специальности для фильтра
+     */
+    protected function getAllSpecializations(): array
+    {
+        if ($this->specIblockId <= 0) {
+            return [];
+        }
+
+        $specs = [];
+        $rs = \CIBlockElement::GetList(
+            ['SORT' => 'ASC', 'NAME' => 'ASC'],
+            ['IBLOCK_ID' => $this->specIblockId, 'ACTIVE' => 'Y'],
+            false, false,
+            ['ID', 'NAME', 'CODE']
+        );
+
+        while ($el = $rs->Fetch()) {
+            $specs[] = [
+                'ID' => (int)$el['ID'],
+                'NAME' => $el['NAME'],
+                'CODE' => $el['CODE'] ?: $el['ID'],
+            ];
+        }
+
+        return $specs;
     }
 }
